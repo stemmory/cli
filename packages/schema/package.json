@@ -1,0 +1,22 @@
+{
+  "name": "@stemmory/schema",
+  "version": "0.1.0",
+  "description": "Frontmatter schema v1 validator for Stemmory feature docs. Mirrored from AdyriX/stemmory packages/schema — see scripts/check-schema-parity.mjs.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src"],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
+}
