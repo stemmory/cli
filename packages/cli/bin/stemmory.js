@@ -13,6 +13,9 @@ import { runCli } from "../src/cli.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
 
-const { output, exitCode } = runCli(process.argv.slice(2), pkg.version);
-console.log(output);
-process.exit(exitCode);
+const { stdout, stderr, exitCode } = runCli(process.argv.slice(2), pkg.version);
+// process.exitCode (not process.exit()) so buffered stdout/stderr flush
+// before the process exits — process.exit() can truncate piped output.
+if (stdout) console.log(stdout);
+if (stderr) console.error(stderr);
+process.exitCode = exitCode;

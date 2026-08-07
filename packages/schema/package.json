@@ -1,14 +1,36 @@
 {
   "name": "@stemmory/schema",
   "version": "0.1.0",
-  "description": "Frontmatter schema v1 validator for Stemmory feature docs. Mirrored from AdyriX/stemmory packages/schema — see scripts/check-schema-parity.mjs.",
+  "description": "Frontmatter schema v1 validator for Stemmory feature docs. Mirrored from the Stemmory product repo — see scripts/check-schema-parity.mjs.",
   "license": "MIT",
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "//private": "STEM-74: remove `private` + `publishConfig` in story 5.4, once the repo goes public and npm provenance can be issued.",
+  "private": true,
+  "publishConfig": {
+    "access": "public"
   },
-  "files": ["src"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stemmory/cli.git",
+    "directory": "packages/schema"
+  },
+  "homepage": "https://github.com/stemmory/cli/tree/main/packages/schema#readme",
+  "bugs": {
+    "url": "https://github.com/stemmory/cli/issues"
+  },
+  "type": "module",
+  "//exports": "src/ stays untouched TypeScript (parity manifest hashes it directly). dist/ is the bundled+typed build a plain-node consumer actually imports - see scripts/check-schema-parity.mjs and the build script below.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --external zod --out-dir dist --clean --target node20",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
@@ -17,6 +39,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "tsup": "^8.5.1",
     "vitest": "^4.1.10"
   }
 }

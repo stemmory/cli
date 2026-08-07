@@ -5,12 +5,23 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
-    # Linux-only while this repo is private: macOS runners bill at 10x the
-    # private-repo Actions quota. Add a macOS leg to this matrix once the
-    # go-public flip lands (story 5.4's gate) - see BUILD_AUDIT.md EPIC 5.
+    # TODO(5.4): add a macOS leg to this matrix once the repo goes public.
+    # Private-repo GitHub Actions billing charges macOS runners at roughly
+    # 10x the Linux per-minute rate, so macOS stays out while private.
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node-version: ["20", "22"]
     steps:
       - uses: actions/checkout@v4
 
@@ -20,12 +31,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run schema:parity
+
+      - run: pnpm run build
 
       - run: pnpm run typecheck
 

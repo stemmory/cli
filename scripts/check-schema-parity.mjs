@@ -14,7 +14,8 @@ let committed;
 try {
   committed = readCommittedManifest();
 } catch (error) {
-  console.error(`Could not read the committed manifest: ${error.message}`);
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`Could not read the committed manifest: ${message}`);
   console.error(`Run "pnpm schema:parity:update" and commit the result.`);
   process.exit(1);
 }

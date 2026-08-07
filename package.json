@@ -7,9 +7,9 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
-    "lint": "pnpm -r run lint",
-    "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.scripts.json && pnpm -r run typecheck",
+    "test": "node --test scripts/*.test.mjs && pnpm -r run test",
     "schema:parity": "node scripts/check-schema-parity.mjs",
     "schema:parity:update": "node scripts/generate-schema-manifest.mjs"
   },

@@ -1,9 +1,9 @@
 // stemmory-cli/eslint.config.mjs
 //
-// Workspace-wide lint floor, mirrored from the product repo's config
-// (AdyriX/stemmory eslint.config.mjs) so the two stay stylistically
-// consistent. This repo is small enough that every package shares this one
-// config directly rather than each shipping its own.
+// Workspace-wide lint floor, mirrored from the Stemmory product repo's
+// config so the two stay stylistically consistent. This repo is small
+// enough that every package (and scripts/) shares this one config directly
+// rather than each shipping its own.
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(

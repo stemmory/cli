@@ -3,8 +3,8 @@
 //
 // Regenerates packages/schema/.parity-manifest.json from the files currently
 // on disk in this repo. Run this AFTER re-mirroring packages/schema from the
-// product repo (AdyriX/stemmory packages/schema), then commit the updated
-// manifest alongside the mirrored files in the same PR. See
+// Stemmory product repo's packages/schema, then commit the updated manifest
+// alongside the mirrored files in the same PR. See
 // scripts/schema-parity-lib.mjs for exactly what this manifest does and does
 // not guarantee.
 import { writeFileSync } from "node:fs";

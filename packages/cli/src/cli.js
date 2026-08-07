@@ -6,6 +6,11 @@
 // Kept as plain JSDoc-typed JS (checked via tsconfig's `checkJs`) rather than
 // TypeScript because the bin script that calls it must run under plain
 // `node` with no build/transpile step.
+//
+// Exit codes matter even for a scaffold (AGENT_CONVENTIONS_KIT_SPEC.md
+// §2.3: "Exit codes CI-friendly"): a named-but-unimplemented command or an
+// unrecognised argument must NOT exit 0, or an early adopter who wires
+// `stemmory lint` into a pipeline today gets a permanent silent pass.
 
 export const HELP_TEXT = `stemmory - Stemmory Conventions Kit CLI
 
@@ -23,14 +28,34 @@ Options:
 
 This is a scaffold build (STEM-74) - init/update/lint are not implemented yet.`;
 
+/** Real commands named in the spec, not yet implemented (stories 5.2/5.3). */
+const UNIMPLEMENTED_COMMANDS = ["init", "lint", "update"];
+
 /**
  * @param {string[]} argv - CLI arguments, e.g. `process.argv.slice(2)`.
  * @param {string} version - the installed package version.
- * @returns {{ output: string, exitCode: number }}
+ * @returns {{ stdout: string, stderr: string, exitCode: number }}
  */
 export function runCli(argv, version) {
   if (argv.includes("--version") || argv.includes("-v")) {
-    return { output: version, exitCode: 0 };
+    return { stdout: version, stderr: "", exitCode: 0 };
   }
-  return { output: HELP_TEXT, exitCode: 0 };
+  if (argv.length === 0 || argv.includes("--help") || argv.includes("-h")) {
+    return { stdout: HELP_TEXT, stderr: "", exitCode: 0 };
+  }
+
+  const [command] = argv;
+  if (UNIMPLEMENTED_COMMANDS.includes(command)) {
+    return {
+      stdout: "",
+      stderr: `stemmory ${command}: not implemented yet (scaffold build, STEM-74) - run "stemmory --help" for what's available.\n`,
+      exitCode: 2,
+    };
+  }
+
+  return {
+    stdout: "",
+    stderr: `stemmory: unknown command or option "${command}"\n\n${HELP_TEXT}\n`,
+    exitCode: 2,
+  };
 }
