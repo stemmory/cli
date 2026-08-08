@@ -1,16 +1,17 @@
 // stemmory-cli/packages/cli/src/cli.js
 //
-// Pure, testable core of the `stemmory` bin. `init` and `update` are story
-// 5.2 (STEM-82); `lint` is still story 5.3's scaffold placeholder. Kept as
-// plain JSDoc-typed JS (checked via tsconfig's `checkJs`) rather than
-// TypeScript because the bin script that calls it must run under plain
-// `node` with no build/transpile step.
+// Pure, testable core of the `stemmory` bin. `init`, `update` (STEM-82) and
+// `lint` (STEM-86) are all implemented. Kept as plain JSDoc-typed JS
+// (checked via tsconfig's `checkJs`) rather than TypeScript because the bin
+// script that calls it must run under plain `node` with no build/transpile
+// step.
 //
 // Exit codes matter (AGENT_CONVENTIONS_KIT_SPEC.md §2.3: "Exit codes
-// CI-friendly"): a named-but-unimplemented command or an unrecognised
-// argument must NOT exit 0, or an early adopter who wires `stemmory lint`
-// into a pipeline today gets a permanent silent pass.
+// CI-friendly"): an unrecognised command or argument must NOT exit 0, or an
+// early adopter who wires `stemmory` into a pipeline gets a permanent
+// silent pass.
 import { runInit } from "./commands/init.js";
+import { runLint } from "./commands/lint.js";
 import { runUpdate } from "./commands/update.js";
 
 export const HELP_TEXT = `stemmory - Stemmory Conventions Kit CLI
@@ -20,7 +21,7 @@ Usage:
 
 Commands:
   init      Install the conventions skill + AGENTS.md fragment
-  lint      Validate docs/features/*.md against schema v1 (coming soon)
+  lint      Validate docs/features/*.md against schema v1
   update    Refresh the installed skill + fragment in place
 
 Init options:
@@ -30,14 +31,23 @@ Init options:
   --agent <claude|generic>  Target agent; generic = fragment-only, no skill
                              install (default: claude)
 
+Lint usage:
+  stemmory lint [path] [--docs-dir <dir>]
+
+  [path] and --docs-dir are two ways to say the same thing; if both are
+  given, --docs-dir wins. Without either, the directory comes from
+  .stemmory/config.json (if "init" has run), else "docs/features".
+
+Lint exit codes:
+  0   clean - every doc valid (warnings don't fail the run)
+  1   one or more docs failed validation
+  2   bad command-line usage
+  3   could not read (missing/unreadable directory or file, or a
+      malformed .stemmory/config.json)
+
 Options:
   --version, -v   Print the installed version
-  --help, -h      Show this help message
-
-lint is not implemented yet.`;
-
-/** Real commands named in the spec, not yet implemented (story 5.3). */
-const UNIMPLEMENTED_COMMANDS = ["lint"];
+  --help, -h      Show this help message`;
 
 /**
  * @param {string[]} argv - CLI arguments, e.g. `process.argv.slice(2)`.
@@ -56,15 +66,8 @@ export function runCli(argv, version, cwd = process.cwd()) {
   const [command, ...rest] = argv;
 
   if (command === "init") return runInit(cwd, rest);
+  if (command === "lint") return runLint(cwd, rest);
   if (command === "update") return runUpdate(cwd);
-
-  if (UNIMPLEMENTED_COMMANDS.includes(command)) {
-    return {
-      stdout: "",
-      stderr: `stemmory ${command}: not implemented yet - run "stemmory --help" for what's available.\n`,
-      exitCode: 2,
-    };
-  }
 
   return {
     stdout: "",

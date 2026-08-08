@@ -1,5 +1,5 @@
 // stemmory-cli/packages/cli/src/cli.test.js
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -26,13 +26,6 @@ describe("runCli", () => {
 
   it("prints help with -h", () => {
     expect(runCli(["-h"], "0.1.0").stdout).toBe(HELP_TEXT);
-  });
-
-  it.each(["lint"])("exits 2 on stderr for the unimplemented %s command, not 0", (command) => {
-    const result = runCli([command], "0.1.0");
-    expect(result.exitCode).toBe(2);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).toContain(command);
   });
 
   it("exits 2 with usage on stderr for an unknown flag, not 0", () => {
@@ -76,6 +69,19 @@ describe("runCli", () => {
       const result = runCli(["update"], "0.1.0", dir);
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr).toContain("stemmory init");
+    });
+
+    it("routes `lint` to the lint command in the given cwd", () => {
+      mkdirSync(path.join(dir, "docs", "features"), { recursive: true });
+      const result = runCli(["lint"], "0.1.0", dir);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("docs checked");
+    });
+
+    it("routes `lint` with a missing docs dir to exit 3, not 0 or 1", () => {
+      const result = runCli(["lint"], "0.1.0", dir);
+      expect(result.exitCode).toBe(3);
+      expect(result.stderr).toContain("could not read");
     });
   });
 });
