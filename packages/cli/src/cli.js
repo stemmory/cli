@@ -42,7 +42,8 @@ Lint exit codes:
   0   clean - every doc valid (warnings don't fail the run)
   1   one or more docs failed validation
   2   bad command-line usage
-  3   could not read docs (missing/unreadable directory or file)
+  3   could not read (missing/unreadable directory or file, or a
+      malformed .stemmory/config.json)
 
 Options:
   --version, -v   Print the installed version

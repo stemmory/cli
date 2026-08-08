@@ -1,18 +1,27 @@
 // stemmory-cli/packages/cli/src/commands/lint.test.js
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
+import { parseDoc } from "@stemmory/schema";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { runInit } from "./init.js";
-import { runLint } from "./lint.js";
+import { lintOne, runLint } from "./lint.js";
 
+// `status: planned` is the one value the GitHub-ingest clamp (parse-doc.ts,
+// DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST) passes through warn-free - every
+// other value (idea/building/shipped/paused) warns. Using "planned" here
+// keeps this fixture genuinely clean; the clamp's warning behaviour itself
+// is covered below by the differential test and by packages/schema's own
+// "status-building.md" fixture, not duplicated as a hand-picked case here
+// (STEM-86 review finding 1 - that was exactly the blind spot).
 const CLEAN_DOC = `---
 schema: 1
 slug: share-links
 title: Public share links
-status: building
+status: planned
 owner: vamsi
 updated: 2026-08-06
 links: []
@@ -224,9 +233,136 @@ describe("runLint", () => {
         expect(result.exitCode).toBe(3);
         expect(result.stderr).toContain("could not read");
         expect(result.stderr).toContain("locked.md");
+        // The message must say "reading", never fs-safety.js's write-path
+        // wording, and must never leak the absolute path (STEM-86 review
+        // finding 3).
+        expect(result.stderr).not.toContain("writing");
+        expect(result.stderr).not.toContain(dir);
       } finally {
         chmodSync(path.join(featuresDir, "locked.md"), 0o644);
       }
     },
   );
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "exit 3 for an unreadable file still reports docs it already checked (STEM-86 review finding 4)",
+    () => {
+      const featuresDir = path.join(dir, "docs", "features");
+      writeDoc(featuresDir, "clean.md", CLEAN_DOC);
+      writeDoc(featuresDir, "broken-doc.md", ERROR_DOC_MISSING_TITLE);
+      writeDoc(featuresDir, "locked.md", CLEAN_DOC);
+      chmodSync(path.join(featuresDir, "locked.md"), 0o000);
+      try {
+        const result = runLint(dir, []);
+        expect(result.exitCode).toBe(3);
+        expect(result.stderr).toContain("locked.md");
+        // The already-computed results for the OTHER files must survive -
+        // not be thrown away just because one file couldn't be read.
+        expect(result.stdout).toContain("ERROR");
+        expect(result.stdout).toContain("broken-doc.md");
+      } finally {
+        chmodSync(path.join(featuresDir, "locked.md"), 0o644);
+      }
+    },
+  );
+
+  describe("recursive scan (STEM-86 review finding 2 - ingest accepts docs at any depth)", () => {
+    it("finds a doc nested under a subdirectory", () => {
+      const featuresDir = path.join(dir, "docs", "features");
+      writeDoc(featuresDir, "top.md", CLEAN_DOC);
+      writeDoc(path.join(featuresDir, "auth"), "social-login.md", ERROR_DOC_INVALID_SLUG);
+      const result = runLint(dir, []);
+      expect(result.stdout).toContain("2 docs checked");
+      expect(result.stdout).toContain("docs/features/auth/social-login.md");
+      expect(result.exitCode).toBe(1);
+    });
+
+    it("finds a doc nested four directories deep", () => {
+      const featuresDir = path.join(dir, "docs", "features");
+      // A hard error (not the clean doc) so its report line - naming the
+      // full path - actually appears in stdout; a clean file prints
+      // nothing per-file by design, only in the aggregate count.
+      writeDoc(path.join(featuresDir, "a", "b", "c"), "deep.md", ERROR_DOC_INVALID_SLUG);
+      const result = runLint(dir, []);
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toContain("1 doc checked");
+      expect(result.stdout).toContain("docs/features/a/b/c/deep.md");
+    });
+  });
+
+  describe("symlinks are never followed (STEM-86 review finding 7)", () => {
+    it("counts a symlinked .md as skipped, not as a checked doc", () => {
+      const featuresDir = path.join(dir, "docs", "features");
+      writeDoc(featuresDir, "real.md", CLEAN_DOC);
+      const outsideFile = path.join(dir, "outside.md");
+      writeFileSync(outsideFile, CLEAN_DOC);
+      symlinkSync(outsideFile, path.join(featuresDir, "linked.md"));
+
+      const result = runLint(dir, []);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("1 doc checked");
+      expect(result.stdout).toContain("1 skipped (symlink, not followed)");
+    });
+  });
+
+  describe("cross-file duplicate slugs (STEM-86 review finding 5)", () => {
+    it("keeps the first file clean and warns on the second, mirroring reconcile.ts", () => {
+      const featuresDir = path.join(dir, "docs", "features");
+      const first = CLEAN_DOC; // slug: share-links
+      const second = CLEAN_DOC.replace("Public share links", "Duplicate share links");
+      writeDoc(featuresDir, "a-first.md", first);
+      writeDoc(featuresDir, "b-second.md", second);
+
+      const result = runLint(dir, []);
+      expect(result.exitCode).toBe(0); // a warning, not a hard failure
+      expect(result.stdout).toContain("1 clean");
+      expect(result.stdout).toContain("1 with warnings");
+      expect(result.stdout).toMatch(
+        /duplicate feature key "share-links": keeping docs\/features\/a-first\.md, ignoring docs\/features\/b-second\.md/,
+      );
+    });
+  });
+});
+
+/**
+ * Adversarial review finding 6: nothing guarded `lintOne`'s re-composition
+ * against drifting from `parseDoc` - the exact gap that let the status-clamp
+ * warning (finding 1) go unnoticed by 18 green tests. This asserts, fixture
+ * by fixture, that `lintOne`'s verdict and warnings are exactly what
+ * `parseDoc` - the function hosted ingest actually calls - produces. Any
+ * future re-composition drift fails here first.
+ */
+describe("lintOne matches parseDoc, fixture by fixture (differential parity guard)", () => {
+  const FIXTURES_DIR = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "schema",
+    "fixtures",
+  );
+  const SILENT_SKIP_REASONS = new Set(["readme", "no_frontmatter", "no_feature_key"]);
+  const fixtureNames = readdirSync(FIXTURES_DIR).filter((name) => name.endsWith(".md"));
+
+  it("found fixtures to compare against (sanity-checks FIXTURES_DIR itself)", () => {
+    expect(fixtureNames.length).toBeGreaterThan(10);
+  });
+
+  it.each(fixtureNames)("%s", (name) => {
+    const content = readFileSync(path.join(FIXTURES_DIR, name), "utf8");
+    const relPath = `docs/features/${name}`;
+
+    const authoritative = parseDoc(relPath, content);
+    const result = lintOne(relPath, content);
+
+    if (authoritative.ok) {
+      expect(result.kind).toBe("ok");
+      expect(result.kind === "ok" && result.slug).toBe(authoritative.doc.slug);
+      expect(result.kind === "ok" && result.warnings).toEqual(authoritative.warnings);
+    } else if (SILENT_SKIP_REASONS.has(authoritative.skip)) {
+      expect(result.kind).toBe("skip");
+    } else {
+      expect(result.kind).toBe("error");
+    }
+  });
 });
