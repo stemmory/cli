@@ -1,0 +1,92 @@
+name: Publish
+
+# STEM-91 (5.4): publishes packages/cli (`stemmory`) and packages/schema
+# (`@stemmory/schema`) to npm with provenance. Tag-triggered only — there is
+# no `workflow_dispatch` and no `push: branches` trigger, so nothing on this
+# repo can reach the publish steps below except pushing a `vX.Y.Z` tag.
+#
+# Do NOT add a workflow_dispatch or branch trigger to this file. Publishing
+# is irreversible; the only intended way in is a human pushing a release tag
+# after completing GO-PUBLIC.md.
+#
+# Fails safe while private: both packages currently have "private": true
+# (see GO-PUBLIC.md). The "Refuse to publish while packages are private"
+# step below checks this explicitly rather than relying on npm/pnpm's own
+# private-package guard — that guard does NOT fire under `--dry-run` (verified
+# during STEM-91), so it can't be trusted as the only line of defense for
+# something this irreversible.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance (OIDC)
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false # never cancel a run that may already be publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to publish while packages are private
+        run: |
+          node -e '
+            const pkgs = ["packages/cli/package.json", "packages/schema/package.json"];
+            const stillPrivate = pkgs.filter((p) => require(`./${p}`).private);
+            if (stillPrivate.length > 0) {
+              console.error(`Refusing to publish: still marked "private": true -> ${stillPrivate.join(", ")}`);
+              console.error("See GO-PUBLIC.md: private:true comes off in the same commit that flips repo visibility, before any tag.");
+              process.exit(1);
+            }
+          '
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run schema:parity
+
+      - run: pnpm run build
+
+      - run: pnpm run typecheck
+
+      - run: pnpm run lint
+
+      - run: pnpm run test
+
+      - name: Verify tag matches package versions
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          cli_version=$(node -p "require('./packages/cli/package.json').version")
+          schema_version=$(node -p "require('./packages/schema/package.json').version")
+          if [ "$tag_version" != "$cli_version" ] || [ "$tag_version" != "$schema_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME (version $tag_version) does not match packages/cli ($cli_version) or packages/schema ($schema_version)"
+            exit 1
+          fi
+
+      # Schema first: cli depends on @stemmory/schema (workspace:*), and pnpm
+      # resolves that to the published version range at publish time.
+      - name: Publish @stemmory/schema
+        run: pnpm --filter @stemmory/schema publish --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish stemmory
+        run: pnpm --filter stemmory publish --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
