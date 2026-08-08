@@ -34,7 +34,7 @@ Options:
   --version, -v   Print the installed version
   --help, -h      Show this help message
 
-lint is not implemented yet (scaffold build, STEM-74).`;
+lint is not implemented yet.`;
 
 /** Real commands named in the spec, not yet implemented (story 5.3). */
 const UNIMPLEMENTED_COMMANDS = ["lint"];
@@ -61,7 +61,7 @@ export function runCli(argv, version, cwd = process.cwd()) {
   if (UNIMPLEMENTED_COMMANDS.includes(command)) {
     return {
       stdout: "",
-      stderr: `stemmory ${command}: not implemented yet (scaffold build, STEM-74) - run "stemmory --help" for what's available.\n`,
+      stderr: `stemmory ${command}: not implemented yet - run "stemmory --help" for what's available.\n`,
       exitCode: 2,
     };
   }
