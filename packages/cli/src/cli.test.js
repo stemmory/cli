@@ -1,5 +1,9 @@
 // stemmory-cli/packages/cli/src/cli.test.js
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { HELP_TEXT, runCli } from "./cli.js";
 
@@ -24,15 +28,12 @@ describe("runCli", () => {
     expect(runCli(["-h"], "0.1.0").stdout).toBe(HELP_TEXT);
   });
 
-  it.each(["init", "lint", "update"])(
-    "exits 2 on stderr for the unimplemented %s command, not 0",
-    (command) => {
-      const result = runCli([command], "0.1.0");
-      expect(result.exitCode).toBe(2);
-      expect(result.stdout).toBe("");
-      expect(result.stderr).toContain(command);
-    },
-  );
+  it.each(["lint"])("exits 2 on stderr for the unimplemented %s command, not 0", (command) => {
+    const result = runCli([command], "0.1.0");
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain(command);
+  });
 
   it("exits 2 with usage on stderr for an unknown flag, not 0", () => {
     const result = runCli(["--bogus"], "0.1.0");
@@ -46,5 +47,35 @@ describe("runCli", () => {
     const result = runCli(["frobnicate"], "0.1.0");
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("frobnicate");
+  });
+
+  describe("init/update routing (cwd-scoped, real filesystem)", () => {
+    /** @type {string} */
+    let dir;
+    beforeEach(() => {
+      dir = mkdtempSync(path.join(os.tmpdir(), "stemmory-cli-routing-"));
+    });
+    afterEach(() => {
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("routes `init` to the init command in the given cwd", () => {
+      const result = runCli(["init"], "0.1.0", dir);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("stemmory init:");
+    });
+
+    it("routes `update` to the update command in the given cwd", () => {
+      runCli(["init"], "0.1.0", dir);
+      const result = runCli(["update"], "0.1.0", dir);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("stemmory update:");
+    });
+
+    it("`update` before `init` fails clearly instead of exiting 0", () => {
+      const result = runCli(["update"], "0.1.0", dir);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr).toContain("stemmory init");
+    });
   });
 });
