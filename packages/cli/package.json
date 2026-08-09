@@ -21,7 +21,14 @@
   "bin": {
     "stemmory": "bin/stemmory.js"
   },
-  "files": ["bin/stemmory.js", "src/cli.js", "src/lib", "src/commands"],
+  "files": [
+    "bin/stemmory.js",
+    "src/cli.js",
+    "src/lib",
+    "src/commands",
+    "!src/lib/**/*.test.js",
+    "!src/commands/**/*.test.js"
+  ],
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json",

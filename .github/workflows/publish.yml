@@ -1,0 +1,151 @@
+name: Publish
+
+# STEM-91 (5.4): publishes packages/cli (`stemmory`) and packages/schema
+# (`@stemmory/schema`) to npm with provenance.
+#
+# Reachable ONLY by pushing a `vX.Y.Z` tag. No workflow_dispatch, no
+# workflow_call, no pull_request_target, no repository_dispatch, no
+# schedule, no push:branches trigger anywhere in this file. DO NOT add one.
+#
+# ⚠️ A GitHub Release IS a tag push. Clicking "Publish release" in the UI
+# (or via API/PAT) creates the tag if it doesn't already exist, which fires
+# the `push: tags` trigger below exactly the same as `git push --tags`. Do
+# not treat "no dispatch button" as "no accidental path" - before the
+# go-public flip, add a tag protection ruleset restricting who can create
+# `v*` tags (Settings -> Rules -> Rulesets), and configure the `npm-publish`
+# environment below with required reviewers. See GO-PUBLIC.md.
+#
+# Fails safe two independent ways, deliberately redundant rather than
+# trusting a single signal or a careful reading of GO-PUBLIC.md's ordering:
+#   1. The guard step checks the REPO'S ACTUAL VISIBILITY via the GitHub API
+#      (not a file field - nothing to forget to commit).
+#   2. It also checks every packages/*/package.json's `private` field.
+# Either one alone being "not ready" blocks the run, regardless of which
+# order a human did the flip steps in. npm/pnpm's own private-package guard
+# does NOT fire under `--dry-run` (verified during STEM-91), so it isn't
+# trusted as the only line of defense for something this irreversible.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false # never cancel a run that may already be publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Requires a Settings -> Environments -> "npm-publish" environment with
+    # required reviewers configured BEFORE the first tag. GitHub
+    # auto-creates an environment referenced here with NO protection if it
+    # doesn't exist yet, so this line alone is not the gate - the reviewer
+    # requirement has to be added in repo settings. See GO-PUBLIC.md.
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write # required for npm provenance (OIDC). Job-scoped only,
+      # not workflow-level, so a job added later here does not inherit it
+      # by default.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.x
+
+      - name: Refuse to publish while the repo is private or any package is private
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          is_private=$(gh api "repos/${{ github.repository }}" --jq .private)
+          if [ "$is_private" = "true" ]; then
+            echo "::error::repository ${{ github.repository }} is still private - refusing to publish. See GO-PUBLIC.md." >&2
+            exit 1
+          fi
+
+          node -e '
+            const fs = require("fs");
+            const pkgFiles = fs.readdirSync("packages", { withFileTypes: true })
+              .filter((d) => d.isDirectory())
+              .map((d) => `packages/${d.name}/package.json`)
+              .filter((p) => fs.existsSync(p));
+            const stillPrivate = pkgFiles.filter((p) => JSON.parse(fs.readFileSync(p, "utf8")).private);
+            if (stillPrivate.length > 0) {
+              console.error(`Refusing to publish: still marked "private": true -> ${stillPrivate.join(", ")}`);
+              console.error("See GO-PUBLIC.md: private:true comes off as part of the same flip that makes the repo public, before any tag.");
+              process.exit(1);
+            }
+          '
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.1.0
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.x
+        with:
+          node-version: "20"
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run schema:parity
+
+      - run: pnpm run build
+
+      - run: pnpm run typecheck
+
+      - run: pnpm run lint
+
+      - run: pnpm run test
+
+      # Two packages, hardcoded on purpose: adding a third package already
+      # means editing this file to add its own "Publish <pkg>" step (publish
+      # ORDER is a dependency-graph decision a glob can't make safely), so
+      # extend this check in the same edit rather than generalizing it alone.
+      - name: Verify tag matches package versions
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          cli_version=$(node -p "require('./packages/cli/package.json').version")
+          schema_version=$(node -p "require('./packages/schema/package.json').version")
+          if [ "$tag_version" != "$cli_version" ] || [ "$tag_version" != "$schema_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME (version $tag_version) does not match packages/cli ($cli_version) or packages/schema ($schema_version)"
+            exit 1
+          fi
+
+      # Schema first: cli depends on @stemmory/schema (workspace:*), and pnpm
+      # resolves that to the published version range at publish time.
+      #
+      # Each publish step is idempotent (skips if the version is already on
+      # the registry) so re-running this workflow after a transient failure
+      # (registry 5xx, an npm token missing create-package permission for a
+      # brand-new unscoped name, npm outage) can't publish schema, fail on
+      # cli, and then be unable to retry without bumping+re-tagging both
+      # packages and orphaning the already-published schema version.
+      #
+      # A prerelease version (contains "-", e.g. "0.2.0-rc.1") publishes
+      # under the "next" dist-tag instead of "latest" so `npm install
+      # stemmory` never silently picks up a prerelease.
+      - name: Publish @stemmory/schema
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          version=$(node -p "require('./packages/schema/package.json').version")
+          if npm view "@stemmory/schema@$version" version >/dev/null 2>&1; then
+            echo "@stemmory/schema@$version is already published - skipping."
+          else
+            npm_tag=latest
+            case "$version" in *-*) npm_tag=next ;; esac
+            pnpm --filter @stemmory/schema publish --access public --provenance --no-git-checks --tag "$npm_tag"
+          fi
+
+      - name: Publish stemmory
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          version=$(node -p "require('./packages/cli/package.json').version")
+          if npm view "stemmory@$version" version >/dev/null 2>&1; then
+            echo "stemmory@$version is already published - skipping."
+          else
+            npm_tag=latest
+            case "$version" in *-*) npm_tag=next ;; esac
+            pnpm --filter stemmory publish --access public --provenance --no-git-checks --tag "$npm_tag"
+          fi

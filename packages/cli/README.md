@@ -1,12 +1,15 @@
 # stemmory
 
-The `stemmory` CLI — installs the Stemmory Conventions Kit skill and `AGENTS.md` fragment into a project, and lints feature docs against the shared schema.
+The `stemmory` CLI — installs the Stemmory Conventions Kit skill and `AGENTS.md` fragment into a project, and lints feature docs against the shared schema. No Stemmory account required.
 
 ```bash
-npx stemmory --help
+npx stemmory init      # install skill + AGENTS.md fragment + .stemmory/config.json
+stemmory lint           # validate docs/features/*.md against schema v1
+stemmory update         # refresh the installed skill + fragment in place
+stemmory --help
 ```
 
-**Status:** scaffold only (STEM-74). `--version` and `--help` work; `init`, `update`, and `lint` are not implemented yet and currently exit with an error — they ship in later stories.
+See the [workspace README](../../README.md) for the full pitch — install the kit, accumulate clean feature docs and decisions, then connect Stemmory to see it as a live map.
 
 Part of the [stemmory/cli](https://github.com/stemmory/cli) workspace, alongside [`@stemmory/schema`](https://www.npmjs.com/package/@stemmory/schema).
 
