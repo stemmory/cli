@@ -66,19 +66,19 @@ packages/schema/src/validate.ts
 
 - [ ] Decide: scrub both copies together in a coordinated change, or accept that this content becomes public. Either way it's a decision to make deliberately, not by default.
 
-### 1.4 LICENSE copyright holder — legal call, not made here
+### 1.4 LICENSE copyright holder — DECIDED 2026-08-10
 
-`LICENSE` (and the identical copies at `packages/cli/LICENSE` and `packages/schema/LICENSE` — all three are plain file copies, not symlinks, verified byte-identical) currently reads:
+`LICENSE` (and the identical copies at `packages/cli/LICENSE` and `packages/schema/LICENSE` — all three are plain file copies, not symlinks, verified byte-identical) now reads:
 
 ```
-Copyright (c) 2026 Stemmory
+Copyright (c) 2026 AdyriX Systems Private Limited
 ```
 
-Proposed replacement: `AdyriX Systems Private Limited` (the legal entity, vs. `Stemmory` the product brand). **This file is deliberately left untouched.** Reasons this needs a human, not an agent:
-- Both `ARCHITECTURE_AND_SYNC_SPEC.md` §6 and `AGENT_CONVENTIONS_KIT_SPEC.md` §7 item 4 still list the kit's license as an **open item** ("decide before publish"), even though 5.1's acceptance criteria states MIT.
-- Once the repo is public and forked, the copyright line is not retractable.
+**Resolved (STEM-103):** the holder is now `AdyriX Systems Private Limited` — the legal entity, rather than `Stemmory`, which is a product brand and cannot hold copyright. All three files were updated identically and verified byte-identical to each other after the edit.
 
-- [ ] Decide the copyright holder and update all three `LICENSE` files identically before the flip.
+This needed a human because the line is not retractable once the repo is public and forked, and because `ARCHITECTURE_AND_SYNC_SPEC.md` §6 and `AGENT_CONVENTIONS_KIT_SPEC.md` §7 item 4 both still listed the kit's license as an open item even though 5.1's acceptance criteria state MIT. The licence itself is unchanged — MIT, matching both `package.json` files. This was a holder correction, not a licence change.
+
+- [x] Decide the copyright holder and update all three `LICENSE` files identically before the flip. **Done — `AdyriX Systems Private Limited`.**
 
 ### 1.5 `private: true` removal — **ORDER MATTERS**, see §2
 
