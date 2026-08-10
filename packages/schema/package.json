@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "Frontmatter schema v1 validator for Stemmory feature docs. Mirrored from the Stemmory product repo — see scripts/check-schema-parity.mjs.",
   "license": "MIT",
-  "//private": "STEM-74: remove `private` + `publishConfig` in story 5.4, once the repo goes public and npm provenance can be issued.",
-  "private": true,
+  "//publishConfig": "Required, not leftover: npm defaults SCOPED packages to access=restricted, so @stemmory/schema needs access:public to publish publicly at all. Do not remove it.",
   "publishConfig": {
     "access": "public"
   },
