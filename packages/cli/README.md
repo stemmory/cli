@@ -28,10 +28,25 @@ with validated frontmatter and dated decision records. Your agent writes them,
 
 ```bash
 npx stemmory init      # install skill + AGENTS.md fragment + .stemmory/config.json
-stemmory lint          # validate docs/features/*.md against schema v1
-stemmory update        # refresh the installed skill + fragment in place
-stemmory --help
+npx stemmory lint      # validate docs/features/*.md against schema v1
+npx stemmory update    # refresh the installed skill + fragment in place
+npx stemmory --help
 ```
+
+### Why `npx`
+
+A local install puts the binary in `node_modules/.bin/`, which is **not** on
+your `PATH` — so a bare `stemmory lint` gives `command not found`. Three ways
+to run it, pick one:
+
+| | Command | Bare `stemmory` works? |
+| --- | --- | --- |
+| No install | `npx stemmory lint` | — |
+| Project dependency | `npm i -D stemmory` then `npx stemmory lint`, or an npm script | no (use `npx`) |
+| Global | `npm i -g stemmory` then `stemmory lint` | yes |
+
+For CI, the project-dependency route is the one to prefer: the version is
+pinned in your lockfile, so the linter cannot change under you between runs.
 
 `init` is idempotent and writes inside clearly delimited markers, so re-running it
 never clobbers your own `AGENTS.md` content.
