@@ -1,12 +1,12 @@
 // stemmory-cli/packages/cli/src/cli.js
 //
-// Pure, testable core of the `stemmory` bin. `init`, `update` (STEM-82) and
-// `lint` (STEM-86) are all implemented. Kept as plain JSDoc-typed JS
+// Pure, testable core of the `stemmory` bin. `init`, `update` and
+// `lint` are all implemented. Kept as plain JSDoc-typed JS
 // (checked via tsconfig's `checkJs`) rather than TypeScript because the bin
 // script that calls it must run under plain `node` with no build/transpile
 // step.
 //
-// Exit codes matter (AGENT_CONVENTIONS_KIT_SPEC.md §2.3: "Exit codes
+// Exit codes matter (the kit spec: "Exit codes
 // CI-friendly"): an unrecognised command or argument must NOT exit 0, or an
 // early adopter who wires `stemmory` into a pipeline gets a permanent
 // silent pass.
@@ -52,7 +52,7 @@ Options:
 /**
  * @param {string[]} argv - CLI arguments, e.g. `process.argv.slice(2)`.
  * @param {string} version - the installed package version.
- * @param {string} [cwd] - working directory to operate in; defaults to `process.cwd()`.
+ * @param {string} [cwd] - working directory to operate in; defaults to `process.cwd`.
  * @returns {{ stdout: string, stderr: string, exitCode: number }}
  */
 export function runCli(argv, version, cwd = process.cwd()) {

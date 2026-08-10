@@ -1,7 +1,7 @@
 // stemmory-cli/packages/cli/src/lib/slug-util.js
 //
 // Best-effort `project` slug for `.stemmory/config.json` (AGENT_CONVENTIONS_
-// KIT_SPEC.md §2.3): package.json's `name` when this is a Node project,
+// the kit spec): package.json's `name` when this is a Node project,
 // else the directory name. Not user-configurable via a flag - the kit's
 // flag surface (§2.3) doesn't offer one, and the value only labels the
 // project inside its own config file.

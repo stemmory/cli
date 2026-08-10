@@ -1,17 +1,17 @@
 // stemmory-cli/packages/cli/src/commands/update.js
 //
-// `stemmory update` (AGENT_CONVENTIONS_KIT_SPEC.md §2.3): refreshes the
+// `stemmory update`: refreshes the
 // AGENTS.md fragment and the installed skill in place via the idempotent
-// markers, using the settings already recorded in .stemmory/config.json
+// markers, using the settings already recorded in.stemmory/config.json
 // (init writes it; update reads it back rather than taking flags of its
 // own - the spec's CLI table lists no flags for this command). Prints a
 // changelog; never disturbs AGENTS.md content outside the markers.
 //
-// STEM-82 adversarial review: pre-flight every write target before the
-// first write (finding 7), refuse rather than guess on malformed AGENTS.md
-// markers (finding 1), back up SKILL.md before overwriting a hand-edited
-// copy (finding 6), and surface a corrupt/malformed config.json as one
-// clean line instead of a raw exception (findings 4, 9).
+// adversarial review: pre-flight every write target before the
+// first write, refuse rather than guess on malformed AGENTS.md
+// markers, back up SKILL.md before overwriting a hand-edited
+// copy, and surface a corrupt/malformed config.json as one
+// clean line instead of a raw exception (, 9).
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -60,7 +60,7 @@ export function runUpdate(cwd) {
   const skillFile = path.join(skillDir, "SKILL.md");
   const skillBakFile = path.join(skillDir, "SKILL.md.bak");
 
-  // Pre-flight before any write (finding 7/10).
+  // Pre-flight before any write.
   try {
     assertSafeFileTarget(agentsPath);
     assertSafeDirTarget(skillDir);
@@ -95,7 +95,7 @@ export function runUpdate(cwd) {
     if (newSkill !== existingSkill) {
       // Back up whatever was there first (could be a hand edit, not just
       // a previous generated version) - `update` must never make local
-      // changes to SKILL.md unrecoverable (finding 6).
+      // changes to SKILL.md unrecoverable.
       atomicWriteFile(skillBakFile, existingSkill, 0o644);
       atomicWriteFile(skillFile, newSkill, 0o644);
       changes.push(`${SKILL_NAME} skill refreshed (previous version saved to SKILL.md.bak)`);

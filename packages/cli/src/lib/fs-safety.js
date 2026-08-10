@@ -1,17 +1,17 @@
 // stemmory-cli/packages/cli/src/lib/fs-safety.js
 //
-// Shared pre-flight + atomic-write helpers (STEM-82 adversarial review
-// findings 1/7/8/10/17/18). Goals:
+// Shared pre-flight + atomic-write helpers (adversarial review
+///8/10/17/18). Goals:
 //   - refuse to write through a symlink or over a directory instead of
-//     following/clobbering it (finding 10)
+//     following/clobbering it
 //   - write-temp-then-rename so a crash or full disk mid-write leaves
 //     either the old file or the new one, never a truncated hybrid -
-//     which is exactly how finding 1's orphan-marker corruption starts
-//     (finding 8, closes 18's permission race as a side effect: the
+//     which is exactly how the orphan-marker corruption starts
+//     (closes the permission race as a side effect: the
 //     renamed-in file carries the temp file's freshly chmod'd perms, not
 //     whatever the old file happened to have)
 //   - map raw errno codes to one-line messages instead of letting a raw
-//     stack trace (with absolute paths) reach the user (finding 7)
+//     stack trace (with absolute paths) reach the user
 import { closeSync, fchmodSync, fsyncSync, lstatSync, mkdirSync, openSync, renameSync, unlinkSync, writeSync } from "node:fs";
 import path from "node:path";
 

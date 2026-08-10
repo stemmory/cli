@@ -1,7 +1,7 @@
 // stemmory-cli/packages/cli/src/lib/skill-fields.js
 //
 // The stemmory-conventions skill documents the frontmatter schema so
-// agents never have to guess it (AGENT_CONVENTIONS_KIT_SPEC.md §2.2 point
+// agents never have to guess it (the kit spec point
 // 1). §6 names "skill/schema drift" as a known risk and mandates
 // `@stemmory/schema` as the single source of truth - this file must never
 // define field names by hand disconnected from it.

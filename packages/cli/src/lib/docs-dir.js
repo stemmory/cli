@@ -1,6 +1,6 @@
 // stemmory-cli/packages/cli/src/lib/docs-dir.js
 //
-// STEM-82 adversarial review finding 13: `docsDir` gets templated verbatim
+// adversarial review: `docsDir` gets templated verbatim
 // into the AGENTS.md fragment (inside an HTML comment block) and into the
 // skill's YAML frontmatter description. A newline, or the characters that
 // build a marker/YAML-breaking sequence (`<`, `>`, a backtick), let a

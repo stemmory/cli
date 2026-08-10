@@ -1,6 +1,6 @@
 // stemmory-cli/packages/cli/src/lib/gitignore.js
 //
-// STEM-82 adversarial review finding 2 (HIGH): `.stemmory/config.json` can
+// adversarial review: `.stemmory/config.json` can
 // hold a plaintext API key inside the project's own working tree, and
 // nothing stopped `git add -A` from staging it - file mode (0600) is a
 // filesystem control, not a git one. Only touched when a key is actually
