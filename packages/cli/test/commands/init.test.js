@@ -15,7 +15,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { runInit } from "./init.js";
+import { runInit } from "../../src/commands/init.js";
 
 const SKILL_FILE_SEGMENTS = [".claude", "skills", "stemmory-conventions", "SKILL.md"];
 // Deliberately inert-looking fake secrets: no "sk-" / "sk_live" style

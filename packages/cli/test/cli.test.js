@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { HELP_TEXT, runCli } from "./cli.js";
+import { HELP_TEXT, runCli } from "../src/cli.js";
 
 describe("runCli", () => {
   it("prints the version to stdout with --version, exit 0", () => {

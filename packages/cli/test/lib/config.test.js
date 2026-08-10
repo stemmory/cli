@@ -6,7 +6,7 @@ import path from "node:path";
 import { CURRENT_SCHEMA_VERSION } from "@stemmory/schema";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { assertConfigWritable, buildConfig, configPath, readConfig, writeConfig } from "./config.js";
+import { assertConfigWritable, buildConfig, configPath, readConfig, writeConfig } from "../../src/lib/config.js";
 
 const FAKE_SECRET = "test-secret-do-not-leak-000111";
 

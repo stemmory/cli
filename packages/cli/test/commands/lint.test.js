@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 import { parseDoc } from "@stemmory/schema";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { runInit } from "./init.js";
-import { lintOne, runLint } from "./lint.js";
+import { runInit } from "../../src/commands/init.js";
+import { lintOne, runLint } from "../../src/commands/lint.js";
 
 // `status: planned` is the one value the GitHub-ingest clamp (parse-doc.ts,
 // DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST) passes through warn-free - every

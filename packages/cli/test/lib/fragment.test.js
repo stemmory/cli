@@ -1,7 +1,7 @@
 // stemmory-cli/packages/cli/src/lib/fragment.test.js
 import { describe, expect, it } from "vitest";
 
-import { FRAGMENT_BEGIN, FRAGMENT_END, buildFragment, upsertAgentsMd } from "./fragment.js";
+import { FRAGMENT_BEGIN, FRAGMENT_END, buildFragment, upsertAgentsMd } from "../../src/lib/fragment.js";
 
 describe("buildFragment", () => {
   it("is <= 15 lines including markers (AGENT_CONVENTIONS_KIT_SPEC.md §2.1)", () => {
