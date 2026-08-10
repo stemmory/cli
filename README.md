@@ -87,7 +87,21 @@ rather than fails when missing. Decision lines use a
 
 Useful flags: `--docs-dir <dir>`, `--linear-team <key>`,
 `--agent <claude\|generic>` (`generic` writes the fragment only, no skill).
-Run `stemmory --help` for the full list.
+Run `npx stemmory --help` for the full list.
+
+The table lists the commands themselves; prefix them with `npx` unless you
+installed globally. A local install puts the binary in `node_modules/.bin/`,
+which is not on your `PATH`, so a bare `stemmory lint` gives `command not
+found`:
+
+| | Command | Bare `stemmory` works? |
+| --- | --- | --- |
+| No install | `npx stemmory lint` | — |
+| Project dependency | `npm i -D stemmory`, then `npx stemmory lint` or an npm script | no (use `npx`) |
+| Global | `npm i -g stemmory`, then `stemmory lint` | yes |
+
+For CI, prefer the project dependency: the version is pinned in your lockfile,
+so the linter cannot change under you between runs.
 
 ### Lint exit codes
 

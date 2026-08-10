@@ -49,7 +49,7 @@ jobs:
       # not workflow-level, so a job added later here does not inherit it
       # by default.
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.x
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Refuse to publish while the repo is private or any package is private
         env:
@@ -75,11 +75,11 @@ jobs:
             }
           '
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.1.0
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: 9.15.0
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.x
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "20"
           cache: pnpm
@@ -134,7 +134,23 @@ jobs:
           else
             npm_tag=latest
             case "$version" in *-*) npm_tag=next ;; esac
-            pnpm --filter @stemmory/schema publish --access public --provenance --no-git-checks --tag "$npm_tag"
+            # pnpm pack, then npm publish — deliberately not `pnpm publish`.
+            #
+            # pnpm 9.15's `publish` does not implement --provenance (it is
+            # absent from `pnpm publish --help`); it accepted the flag, ignored
+            # it, and exited 0, so v0.1.0 shipped with no attestation and
+            # nothing failed. npm implements it, but cannot be used alone here:
+            # packages/cli declares "@stemmory/schema": "workspace:*", which
+            # only pnpm rewrites to a real version at pack time. `npm publish`
+            # straight from the package dir would ship the literal
+            # "workspace:*" and break every install.
+            #
+            # `pnpm pack` does the rewrite; `npm publish <tarball>` does the
+            # provenance. Verified: the packed tarball declares "0.1.0".
+            pnpm --filter @stemmory/schema exec pnpm pack --pack-destination "$RUNNER_TEMP"
+            tgz=$(ls "$RUNNER_TEMP"/*.tgz | head -1)
+            npm publish "$tgz" --access public --provenance --tag "$npm_tag"
+            rm -f "$tgz"
           fi
 
       - name: Publish stemmory
@@ -147,5 +163,50 @@ jobs:
           else
             npm_tag=latest
             case "$version" in *-*) npm_tag=next ;; esac
-            pnpm --filter stemmory publish --access public --provenance --no-git-checks --tag "$npm_tag"
+            # pnpm pack, then npm publish — deliberately not `pnpm publish`.
+            #
+            # pnpm 9.15's `publish` does not implement --provenance (it is
+            # absent from `pnpm publish --help`); it accepted the flag, ignored
+            # it, and exited 0, so v0.1.0 shipped with no attestation and
+            # nothing failed. npm implements it, but cannot be used alone here:
+            # packages/cli declares "@stemmory/schema": "workspace:*", which
+            # only pnpm rewrites to a real version at pack time. `npm publish`
+            # straight from the package dir would ship the literal
+            # "workspace:*" and break every install.
+            #
+            # `pnpm pack` does the rewrite; `npm publish <tarball>` does the
+            # provenance. Verified: the packed tarball declares "0.1.0".
+            pnpm --filter stemmory exec pnpm pack --pack-destination "$RUNNER_TEMP"
+            tgz=$(ls "$RUNNER_TEMP"/*.tgz | head -1)
+            npm publish "$tgz" --access public --provenance --tag "$npm_tag"
+            rm -f "$tgz"
           fi
+
+      # v0.1.0 published with NO provenance and the run was still green,
+      # because pnpm accepted --provenance, ignored it, and exited 0. A flag
+      # that can be silently ignored needs a check that cannot be. This step
+      # fails the run if either package landed without an attestation, so the
+      # same regression can never pass unnoticed twice.
+      #
+      # Queried against the registry's attestations endpoint rather than the
+      # packument: the packument does not expose attestations, so reading it
+      # would report "none" for a package that has them, which is how this
+      # went undiagnosed the first time.
+      - name: Verify provenance attestations exist
+        run: |
+          fail=0
+          schema_v=$(node -p "require('./packages/schema/package.json').version")
+          cli_v=$(node -p "require('./packages/cli/package.json').version")
+          for spec in "@stemmory/schema@$schema_v" "stemmory@$cli_v"; do
+            enc=$(printf '%s' "$spec" | sed 's|/|%2F|')
+            n=$(curl -sf "https://registry.npmjs.org/-/npm/v1/attestations/$enc" \
+                 | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log((JSON.parse(d).attestations||[]).length)}catch(e){console.log(0)}})') || n=0
+            if [ "${n:-0}" -gt 0 ]; then
+              echo "$spec: $n attestation(s)"
+            else
+              echo "::error::$spec published without a provenance attestation" >&2
+              fail=1
+            fi
+          done
+          exit "$fail"
+

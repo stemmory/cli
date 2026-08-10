@@ -1,6 +1,6 @@
 // stemmory-cli/packages/cli/src/commands/lint.js
 //
-// `stemmory lint` (AGENT_CONVENTIONS_KIT_SPEC.md §2.3, story 5.3 / STEM-86):
+// `stemmory lint`:
 // validates docs/features/**/*.md against schema v1 using the SAME
 // validator hosted ingest runs (@stemmory/schema, ARCHITECTURE_AND_SYNC_
 // SPEC.md §6 - "one validator, both consumers"). No rule is reimplemented
@@ -8,7 +8,7 @@
 // `parseDoc` (the exact function `apps/web/lib/sync/markdown.ts` calls),
 // and turn the result into CI-friendly exit codes.
 //
-// Adversarial review (round 2) found the first version drifted from
+// Review found the first version drifted from
 // `parseDoc` in two ways that only looked correct because the product
 // repo's current corpus never exercises the divergent paths:
 //   1. Re-composing `splitFrontmatter -> parseFrontmatterBlock ->
@@ -40,7 +40,7 @@
 //   2 = bad CLI usage (unknown flag, bad --docs-dir value) - same code the
 //       rest of the CLI already uses for usage errors
 //   3 = could not read (missing docs dir, unreadable dir/file, or a bad
-//       .stemmory/config.json - a malformed "docsDir" included, same as
+//.stemmory/config.json - a malformed "docsDir" included, same as
 //       `update` treats it)
 // A pipeline needs "your docs are wrong" (1) to never look like "the tool
 // broke" (3), and neither to look like "you typed the command wrong" (2).
@@ -260,7 +260,7 @@ export function runLint(cwd, args) {
     };
   }
 
-  // Precedence: --docs-dir / positional arg > .stemmory/config.json > default.
+  // Precedence: --docs-dir / positional arg >.stemmory/config.json > default.
   const docsDir = parsed.value.docsDir ?? config?.docsDir ?? DEFAULT_DOCS_DIR;
   const docsDirAbs = path.resolve(cwd, docsDir);
   const docsDirDisplay = path.relative(cwd, docsDirAbs) || docsDir;

@@ -1,16 +1,16 @@
 // stemmory-cli/packages/cli/src/commands/init.js
 //
-// `stemmory init` (AGENT_CONVENTIONS_KIT_SPEC.md §2.3): writes
-// .stemmory/config.json, upserts the AGENTS.md fragment, and - unless
+// `stemmory init`: writes
+//.stemmory/config.json, upserts the AGENTS.md fragment, and - unless
 // --agent generic - installs the stemmory-conventions skill into the
 // project's skills dir. Fully offline: no telemetry, no network call.
 //
-// STEM-82 adversarial review reshaped this file around one rule: validate
+// adversarial review reshaped this file around one rule: validate
 // and compute everything FIRST (pure), and only then write - and even
 // then, write the files that hold no secret before the one that does
-// (finding 7). A run that fails partway through never leaves an API key
+//. A run that fails partway through never leaves an API key
 // on disk without the rest of the install, and never leaves a
-// syntactically-broken AGENTS.md behind (findings 1, 8, 10).
+// syntactically-broken AGENTS.md behind (, 8, 10).
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -38,7 +38,7 @@ const FLAG_TO_KEY = /** @type {const} */ ({
 /**
  * Supports `--flag value` and `--flag=value`. A value that itself looks
  * like a flag (`--foo`) is treated as a missing value, not silently
- * consumed - the fix for STEM-82 finding 3, where
+ * consumed - the fix for, where
  * `--linear-team --api-key sk-...` swallowed the next flag's own value as
  * `--linear-team`'s argument and then echoed it back in an error. Error
  * messages below only ever name the FLAG, never a value - an api-key typo
@@ -74,7 +74,7 @@ function parseRawFlags(args) {
  * @typedef {{ docsDir: string | undefined, linearTeam: string | undefined, apiKey: string | undefined, agent: "claude" | "generic" | undefined }} InitFlags
  * - `undefined` on `docsDir`/`linearTeam`/`apiKey` means "not passed - keep
  *   whatever's already in config.json, or fall back to the default on a
- *   first run" (STEM-82 finding 5). An explicit empty string
+ *   first run". An explicit empty string
  *   (`--api-key ""`) is a deliberate clear, distinct from "not passed".
  */
 
@@ -102,8 +102,8 @@ export function parseInitArgs(args) {
 /**
  * `--agent` not passed: cheap, honest signal-check rather than a guess -
  * still resolves to "claude" either way (the only concretely supported
- * skills-dir convention today, ONBOARDING_IMPORT_SPEC.md §6 open item 2),
- * but the changelog says why (STEM-82 finding 20).
+ * skills-dir convention today, the kit spec open item 2),
+ * but the changelog says why.
  * @param {string} cwd
  */
 function detectAgent(cwd) {
@@ -143,7 +143,7 @@ export function runInit(cwd, args) {
     return { stdout: "", stderr: `stemmory init: ${errorMessage(err)}\n`, exitCode: 1 };
   }
 
-  // Merge, don't clobber (finding 5): a flag that wasn't passed keeps
+  // Merge, don't clobber: a flag that wasn't passed keeps
   // whatever's already on disk instead of resetting to the hardcoded
   // default - re-running `init` to tweak one setting must not cost the
   // user their stored API key or Linear team.
@@ -162,7 +162,7 @@ export function runInit(cwd, args) {
   const skillDir = path.join(cwd, ".claude", "skills", SKILL_NAME);
   const skillFile = path.join(skillDir, "SKILL.md");
 
-  // Pre-flight EVERY write target before the first write (finding 7): a
+  // Pre-flight EVERY write target before the first write: a
   // symlink, a wrong-shaped directory, or malformed AGENTS.md markers
   // must be caught with nothing written at all - not even the config with
   // its key.
@@ -186,7 +186,7 @@ export function runInit(cwd, args) {
   // Write order matters: non-secret files first, `.stemmory/config.json`
   // (the only file holding the API key) last. A failure partway through
   // this sequence then never leaves a credential on disk without the rest
-  // of the install having happened (finding 7).
+  // of the install having happened.
   try {
     atomicWriteFile(agentsPath, upserted.content, 0o644);
     if (agent === "claude") {

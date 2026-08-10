@@ -176,6 +176,39 @@ than a retry of the same one.
 
 ## Decisions on record
 
+### v0.1.0 published without provenance — root cause
+
+`pnpm publish --provenance` is a no-op on pnpm 9.15: the flag is absent from
+`pnpm publish --help`, and pnpm accepted it, ignored it, and exited 0. The run
+was green, npm reported nothing, and both packages landed with no attestation.
+Provenance was the main reason this repo is public rather than a mirror, so a
+silent no-op was the worst possible failure shape.
+
+Fixed by packing with pnpm and publishing with npm:
+
+```
+pnpm --filter <pkg> exec pnpm pack --pack-destination "$RUNNER_TEMP"
+npm publish "$tgz" --access public --provenance --tag "$npm_tag"
+```
+
+Both halves are load-bearing. `packages/cli` declares
+`"@stemmory/schema": "workspace:*"`, and **only pnpm rewrites that to a real
+version at pack time** — verified: the packed tarball declares `0.1.0`.
+Publishing straight from the package directory with npm would ship the literal
+`workspace:*` and break every install, which is a far worse bug than a missing
+attestation. `pnpm pack` does the rewrite, `npm publish <tarball>` does the
+provenance.
+
+A `Verify provenance attestations exist` step now fails the run if either
+package lands without one. A flag that can be silently ignored needs a check
+that cannot be. Note it queries the registry's attestations endpoint, not the
+packument — the packument does not expose attestations, so reading it reports
+"none" for packages that have them, which is what made this hard to diagnose.
+
+v0.1.0 keeps no attestation; provenance attaches at publish time, so it starts
+with the next version rather than needing a re-tag.
+
+
 Three items from the pre-flip review are recorded here so the reasoning
 isn't implicit. The first was fixed; the other two were accepted as-is.
 

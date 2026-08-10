@@ -1,18 +1,18 @@
 // stemmory-cli/packages/cli/src/lib/fragment.js
 //
-// The AGENTS.md fragment (AGENT_CONVENTIONS_KIT_SPEC.md §2.1). LOCKED
+// The AGENTS.md fragment. LOCKED
 // principles this file exists to uphold:
 //   - append, never own: only the delimited block is ever written; every
 //     byte outside the markers is the user's, untouched
 //   - idempotent markers so `stemmory update` can replace the block in
-//     place: `<!-- stemmory:begin v1 -->` ... `<!-- stemmory:end -->`
+//     place: `<!-- stemmory:begin v1 -->`... `<!-- stemmory:end -->`
 //   - <= 15 lines total (including the markers) - always-on instructions
 //     are taxed on every agent turn in every session; enforced by
 //     fragment.test.js, not just this comment
 //   - §6: "the block is declared machine-owned in its own text" - see the
 //     banner line in `buildFragment` below
 //
-// ⚠️ STEM-82 adversarial review, finding 1 (CRITICAL data loss): the
+// ⚠️ adversarial review: the
 // previous implementation matched markers with a non-greedy regex
 // (`BEGIN[\s\S]*?END`). That silently accepts a malformed document - an
 // orphan BEGIN with no END, or more than one of either - and deletes
