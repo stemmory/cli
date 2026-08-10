@@ -6,7 +6,17 @@ version number.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] — unreleased
+## [0.1.2] — unreleased
+
+### Fixed
+
+- **`ParsedDoc.schemaVersion` now mirrors the product repo** (STEM-105), so the
+  CLI and the hosted ingest agree on what a parsed doc carries. Doc comments and
+  `dist`-published references were scrubbed to match.
+- CI now checks the built `dist` for leaked internal references
+  (`scripts/check-dist-leaks.mjs`).
+
+## [0.1.1] — 2026-08-10
 
 No behaviour changes. Everything here is packaging, provenance and docs — the
 result of inspecting what `0.1.0` actually put on the registry rather than
@@ -67,5 +77,6 @@ First public release.
 
 Published without provenance attestations; see 0.1.1.
 
+[0.1.2]: https://github.com/stemmory/cli/releases/tag/v0.1.2
 [0.1.1]: https://github.com/stemmory/cli/releases/tag/v0.1.1
 [0.1.0]: https://github.com/stemmory/cli/releases/tag/v0.1.0
