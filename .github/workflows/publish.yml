@@ -13,10 +13,10 @@ name: Publish
 # not treat "no dispatch button" as "no accidental path" - before the
 # go-public flip, add a tag protection ruleset restricting who can create
 # `v*` tags (Settings -> Rules -> Rulesets), and configure the `npm-publish`
-# environment below with required reviewers. See GO-PUBLIC.md.
+# environment below with required reviewers. See RELEASING.md.
 #
 # Fails safe two independent ways, deliberately redundant rather than
-# trusting a single signal or a careful reading of GO-PUBLIC.md's ordering:
+# trusting a single signal or a careful reading of RELEASING.md's ordering:
 #   1. The guard step checks the REPO'S ACTUAL VISIBILITY via the GitHub API
 #      (not a file field - nothing to forget to commit).
 #   2. It also checks every packages/*/package.json's `private` field.
@@ -41,7 +41,7 @@ jobs:
     # required reviewers configured BEFORE the first tag. GitHub
     # auto-creates an environment referenced here with NO protection if it
     # doesn't exist yet, so this line alone is not the gate - the reviewer
-    # requirement has to be added in repo settings. See GO-PUBLIC.md.
+    # requirement has to be added in repo settings. See RELEASING.md.
     environment: npm-publish
     permissions:
       contents: read
@@ -57,7 +57,7 @@ jobs:
         run: |
           is_private=$(gh api "repos/${{ github.repository }}" --jq .private)
           if [ "$is_private" = "true" ]; then
-            echo "::error::repository ${{ github.repository }} is still private - refusing to publish. See GO-PUBLIC.md." >&2
+            echo "::error::repository ${{ github.repository }} is still private - refusing to publish. See RELEASING.md." >&2
             exit 1
           fi
 
@@ -70,7 +70,7 @@ jobs:
             const stillPrivate = pkgFiles.filter((p) => JSON.parse(fs.readFileSync(p, "utf8")).private);
             if (stillPrivate.length > 0) {
               console.error(`Refusing to publish: still marked "private": true -> ${stillPrivate.join(", ")}`);
-              console.error("See GO-PUBLIC.md: private:true comes off as part of the same flip that makes the repo public, before any tag.");
+              console.error("See RELEASING.md: private:true comes off as part of the same flip that makes the repo public, before any tag.");
               process.exit(1);
             }
           '
