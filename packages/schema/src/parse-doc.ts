@@ -114,7 +114,7 @@ export function parseDoc(path: string, content: string): ParseResult {
     // building, shipped, paused — all -> planned). `planned`/`deprecated`
     // pass through unchanged and warn-free.
     warnings.push(
-      `frontmatter status "${fm1.status}" cannot be set from a doc — GitHub frontmatter may only raise a node to "planned" or set "deprecated" (DATA_MODEL.md §4); ingested as "${status}".`,
+      `frontmatter status "${fm1.status}" cannot be set from a doc — GitHub frontmatter may only raise a node to "planned" or set "deprecated"; ingested as "${status}".`,
     );
   }
 

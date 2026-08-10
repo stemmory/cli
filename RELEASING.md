@@ -18,28 +18,37 @@ does not do" below for what that replacement does and does not achieve.
 
 ## Prerequisites before the first tag
 
-`.github/workflows/publish.yml` triggers only on a `vX.Y.Z` tag push. Two
-of the following are still missing as of this writing (verified via the
-GitHub API: zero rulesets, zero environments) and must be added in Settings
-before anyone pushes a tag — not "before the first real release," before
-the first tag of any kind, since a tag is the only trigger this workflow
-has.
+`.github/workflows/publish.yml` triggers only on a `vX.Y.Z` tag push. The
+two accidental-publish guards below are now **done**; `NPM_TOKEN` and the
+npm name recheck are what's left before anyone pushes a tag — not "before
+the first real release," before the first tag of any kind, since a tag is
+the only trigger this workflow has.
 
 - **Tag protection ruleset restricting `v*` tag creation to admins**
-  (Settings → Rules → Rulesets → New tag ruleset, pattern `v*`). **Missing.**
-  Without it, anyone with tag-creation rights can fire the publish workflow
-  by creating a matching tag — including by publishing a GitHub Release
-  through the UI, which creates the tag for you if it doesn't already exist.
-  A Release *is* a tag push; there is no separate "release button" trigger
-  to disable, because there is no separate trigger at all.
+  (Settings → Rules → Rulesets). **Done** — `Protect release tags (v*)`,
+  id `20629355`, target `tag`, enforcement `active`, applies to
+  `refs/tags/v*`, rules: creation + update + deletion, bypass restricted to
+  the admin repository role. Update and deletion were added on top of what
+  the original checklist asked for (creation only): a tag that can be
+  *moved* after the fact defeats the point of protecting it, since the
+  publish workflow trusts the tag to identify what it publishes. Kept here
+  because the reasoning is why it's shaped this way, not just that it
+  exists: without it, anyone with tag-creation rights could fire the
+  publish workflow by creating a matching tag — including by publishing a
+  GitHub Release through the UI, which creates the tag for you if it
+  doesn't already exist. A Release *is* a tag push; there is no separate
+  "release button" trigger to disable, because there is no separate
+  trigger at all.
 - **`npm-publish` GitHub Environment with required reviewers** (Settings →
-  Environments → New environment → name it exactly `npm-publish` to match
-  the workflow file → add required reviewers). **Missing.** The workflow
-  already references this environment name, and that is exactly the trap:
-  GitHub auto-creates a referenced environment with **zero protection** the
-  first time the workflow runs, if it doesn't already exist in Settings.
-  The YAML reference alone is not the gate — the reviewer requirement has
-  to be added by hand, once, and then stays configured permanently.
+  Environments). **Done** — created with a required reviewer configured,
+  1 protection rule. Kept here because the reasoning still matters for
+  whoever touches this next: the workflow references this environment
+  name, and that was exactly the trap before this was configured — GitHub
+  auto-creates a referenced environment with **zero protection** the first
+  time the workflow runs, if it doesn't already exist in Settings. The
+  YAML reference alone was never the gate; the reviewer requirement had to
+  be added by hand, and now stays configured permanently, not just for the
+  first release.
 - **`NPM_TOKEN` repository secret**, provisioned and confirmed able to
   *create* the still-nonexistent unscoped `stemmory` package (most granular
   npm tokens are scoped to packages that already exist; check npm's token
@@ -149,16 +158,33 @@ implicit:
   `pnpm schema:parity` in CI. Scrubbing this copy alone would break parity —
   it requires a coordinated edit in both repos plus regenerated manifests
   on each side, which reaches outside this repo. **Accepted as-is.**
-- **Comment-only internal ticket IDs.** Ticket IDs (e.g. `STEM-82`,
-  `STEM-86`) appear in header comments and test `describe`/`it` names
-  across the source. Verified directly (not assumed): `HELP_TEXT` in
-  `packages/cli/src/cli.js` and every other string the CLI actually prints
-  at runtime contain none of them — they're visible only to someone
-  reading source or the npm tarball, never in program output.
-  **Accepted as-is**, on the same basis as the fixtures: visible in source
-  is a materially different bar than printed at runtime, and moving them
-  out of comments/test names touches ~20 call sites across the codebase
-  for no runtime-observable benefit.
+- **Comment-only internal ticket IDs, and comment-only spec-doc citations.**
+  Ticket IDs (e.g. `STEM-82`, `STEM-86`) and citations of the product
+  repo's private spec docs (e.g. "DATA_MODEL.md §4") appear in header
+  comments and test `describe`/`it` names across `packages/cli/src/**` and
+  `packages/schema/src/**`. **Accepted as-is** — visible in source is a
+  materially different bar than printed at runtime, these comments explain
+  *why* non-obvious behaviour exists, and a bare filename in a comment
+  discloses nothing to a reader who can't open it. Scrubbing them would be
+  a net loss for maintainers for no reader-facing benefit.
+
+  That bar does **not** extend to strings a command actually emits —
+  `stemmory lint`'s warnings/errors, `stemmory`'s help text, or anything
+  else returned to a caller. Those reach a public user who has no access
+  to the cited doc, which makes a citation there a UX bug, not just a
+  disclosure question. One was found and fixed in this change:
+  `packages/schema/src/parse-doc.ts`'s GitHub-ingest-clamp warning cited
+  `(DATA_MODEL.md §4)` in the emitted string itself; the citation was
+  dropped from the string (the warning already states the rule in full,
+  so nothing was lost) and kept in the adjacent code comment, where it's
+  still useful to a maintainer. A repo-wide check at the time found this
+  was the only emitted string carrying a citation — verified directly
+  against every non-comment, non-test-name occurrence of the four private
+  spec filenames plus `DATA_MODEL.md`/`BUILD_AUDIT.md` in both packages'
+  `src/`, not assumed from the one file. `packages/schema/src/fixtures.test.ts`
+  now asserts, per fixture, that no warning `parseDoc` emits contains any
+  of those filenames — the check that makes this the second and last time
+  this gets re-verified by hand instead of caught automatically.
 
 ## What this document does not do
 

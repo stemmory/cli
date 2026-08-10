@@ -51,6 +51,35 @@ it("fixtures/ on disk exactly matches the list this suite exercises", () => {
 });
 
 /**
+ * Source comments may cite the product repo's private spec docs (e.g.
+ * "DATA_MODEL.md §4") - that's fine, a maintainer reading source isn't a
+ * dangling reference. A *warning string this validator emits* is different:
+ * it reaches anyone running `stemmory lint` publicly, none of whom can open
+ * a spec doc that lives only in the private product repo. This is a
+ * regression test for exactly that: a citation was previously carried from
+ * a doc comment into the emitted warning text in parse-doc.ts (STEM-104).
+ */
+it("no warning emitted by parseDoc cites a private-repo spec filename", () => {
+  const PRIVATE_SPEC_NAMES = [
+    "AGENT_CONVENTIONS_KIT_SPEC.md",
+    "ARCHITECTURE_AND_SYNC_SPEC.md",
+    "CONVENTIONS.md",
+    "ONBOARDING_IMPORT_SPEC.md",
+    "DATA_MODEL.md",
+    "BUILD_AUDIT.md",
+  ];
+  for (const name of ALL_FIXTURES) {
+    const r = parseDoc(name, fixture(name));
+    const warnings = r.ok ? r.warnings : [];
+    for (const warning of warnings) {
+      for (const specName of PRIVATE_SPEC_NAMES) {
+        expect(warning).not.toContain(specName);
+      }
+    }
+  }
+});
+
+/**
  * DATA_MODEL.md §4, LOCKED: "GitHub frontmatter may only raise a node from
  * nothing to `planned`, or set `deprecated`; it never overrides
  * `in_progress`/`live` (docs lag reality)." `parseDoc` is the GitHub-ingest
