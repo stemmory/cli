@@ -5,8 +5,8 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { runInit } from "./init.js";
-import { runUpdate } from "./update.js";
+import { runInit } from "../../src/commands/init.js";
+import { runUpdate } from "../../src/commands/update.js";
 
 const SKILL_FILE_SEGMENTS = [".claude", "skills", "stemmory-conventions", "SKILL.md"];
 const SKILL_BAK_SEGMENTS = [".claude", "skills", "stemmory-conventions", "SKILL.md.bak"];

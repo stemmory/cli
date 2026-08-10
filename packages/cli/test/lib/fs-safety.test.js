@@ -15,7 +15,7 @@ import path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { assertSafeDirTarget, assertSafeFileTarget, atomicWriteFile, StemmoryFsError } from "./fs-safety.js";
+import { assertSafeDirTarget, assertSafeFileTarget, atomicWriteFile, StemmoryFsError } from "../../src/lib/fs-safety.js";
 
 describe("fs-safety", () => {
   /** @type {string} */

@@ -2,8 +2,8 @@
 import { DOC_STATUS_VALUES } from "@stemmory/schema";
 import { describe, expect, it } from "vitest";
 
-import { buildSkillMarkdown, SKILL_NAME } from "./skill.js";
-import { frontmatterFieldTable } from "./skill-fields.js";
+import { buildSkillMarkdown, SKILL_NAME } from "../../src/lib/skill.js";
+import { frontmatterFieldTable } from "../../src/lib/skill-fields.js";
 
 describe("buildSkillMarkdown", () => {
   it("names itself in valid-looking skill frontmatter", () => {

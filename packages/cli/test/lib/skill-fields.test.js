@@ -2,7 +2,7 @@
 import { frontmatterV1Schema } from "@stemmory/schema";
 import { describe, expect, it } from "vitest";
 
-import { diffFields, frontmatterFieldTable } from "./skill-fields.js";
+import { diffFields, frontmatterFieldTable } from "../../src/lib/skill-fields.js";
 
 describe("diffFields", () => {
   it("reports fields present in the schema but not documented", () => {
