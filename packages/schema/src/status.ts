@@ -31,7 +31,7 @@ export const DOC_STATUS_VALUES = [
 ] as const;
 export type DocStatus = (typeof DOC_STATUS_VALUES)[number];
 
-/** DATA_MODEL.md `node_status` enum. */
+/** The DB's `node_status` enum. */
 export const NODE_STATUS_VALUES = [
   "planned",
   "in_progress",
@@ -51,9 +51,9 @@ export type DocDerivedNodeStatus = Exclude<NodeStatus, "needs_work">;
 
 /**
  * EXPLICIT authority only: CLI `stemmory lint`, and future agent/MCP writes —
- * both of which DATA_MODEL.md §4 ranks ABOVE derivation. Do NOT use this for
- * GitHub-frontmatter ingest; that path's authority is strictly narrower — see
- * `DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST` below.
+ * both of which §4's write-priority rule ranks ABOVE derivation. Do NOT use
+ * this for GitHub-frontmatter ingest; that path's authority is strictly
+ * narrower — see `DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST` below.
  */
 export const DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY: Readonly<
   Record<DocStatus, DocDerivedNodeStatus>
@@ -68,9 +68,9 @@ export const DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY: Readonly<
 
 /**
  * §4: what a doc can achieve through GitHub-frontmatter ingest — the only
- * path `apps/web/lib/sync/markdown.ts` actually exercises. The return type is
- * the enforcement: `in_progress`/`live`/`needs_work` are not values this type
- * can hold, so a call site cannot accidentally widen it.
+ * path the product app's markdown sync actually exercises. The return type
+ * is the enforcement: `in_progress`/`live`/`needs_work` are not values this
+ * type can hold, so a call site cannot accidentally widen it.
  */
 export type GithubIngestNodeStatus = "planned" | "deprecated";
 

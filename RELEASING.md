@@ -242,6 +242,28 @@ isn't implicit. The first was fixed; the other two were accepted as-is.
   discloses nothing to a reader who can't open it. Scrubbing them would be
   a net loss for maintainers for no reader-facing benefit.
 
+  **Correction (STEM-105 follow-up):** this reasoning assumed comments in
+  `packages/schema/src/**` stay in source and never reach anything
+  published. That assumption was never actually verified for this package
+  and turned out to be false — `tsup ... --dts` preserves JSDoc comments
+  attached to exported symbols (and some object-literal-property comments)
+  straight into the published `dist/index.js` and `dist/index.d.ts`.
+  Verified against the published `0.1.1`: `DATA_MODEL.md` ×3, `reconcile.ts`,
+  `CONVENTIONS.md`, and `AGENT_CONVENTIONS_KIT_SPEC.md` were all present in
+  the shipped `dist/index.d.ts`. `packages/cli/src/**` is unaffected — it
+  ships raw, unbundled `.js`, which is why its citations were already
+  scrubbed (see the provenance/Node-20/internal-refs change above) rather
+  than accepted-as-is; that scrub simply used "visible in source" as its own
+  justification for why *cli*'s case was different; it never applied to
+  *schema*. The accepted-as-is call above still holds for comments that
+  provably do not survive the build (most of `packages/schema/src/**`'s
+  file-banner prose, for instance) — but "provably" now means checked
+  against the built artifact, not assumed. `scripts/check-dist-leaks.mjs`
+  (`pnpm check:dist-leaks`, wired into CI after `pnpm run build`) is that
+  check: it fails if a built `packages/schema/dist` contains an internal
+  ticket id or a private spec filename, so this stops being something
+  anyone has to re-verify by hand.
+
   That bar does **not** extend to strings a command actually emits —
   `stemmory lint`'s warnings/errors, `stemmory`'s help text, or anything
   else returned to a caller. Those reach a public user who has no access

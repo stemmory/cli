@@ -51,13 +51,24 @@ it("fixtures/ on disk exactly matches the list this suite exercises", () => {
 });
 
 /**
- * Source comments may cite the product repo's private spec docs (e.g.
- * "DATA_MODEL.md §4") - that's fine, a maintainer reading source isn't a
- * dangling reference. A *warning string this validator emits* is different:
- * it reaches anyone running `stemmory lint` publicly, none of whom can open
- * a spec doc that lives only in the private product repo. This is a
- * regression test for exactly that: a citation was previously carried from
- * a doc comment into the emitted warning text in parse-doc.ts (STEM-104).
+ * A *warning string this validator emits* reaches anyone running
+ * `stemmory lint` publicly, none of whom can open a spec doc that lives
+ * only in the private product repo. This is a regression test for exactly
+ * that: a citation was previously carried from a doc comment into the
+ * emitted warning text in parse-doc.ts (STEM-104). (Source comments are a
+ * separate question with a separate answer, not "always fine" the way this
+ * comment used to claim — the CLI repo's published `dist` is bundled from
+ * this same `src/`, and a JSDoc comment attached to an exported symbol does
+ * survive that bundling into `dist/index.d.ts`. That surface has its own
+ * dedicated check in the CLI repo (scripts/check-dist-leaks.mjs), against
+ * the built artifact.)
+ *
+ * Bound on what THIS test can prove: it only reaches warnings the fixture
+ * corpus above actually triggers. `links.ts`, `decisions.ts`, and
+ * `validate.ts`'s self-parent-key warning are never exercised by
+ * `ALL_FIXTURES` here, so a citation added to one of those warning strings
+ * would not be caught by this test. Static grep confirms none currently
+ * exists — this is a bound to keep in mind, not a live leak.
  */
 it("no warning emitted by parseDoc cites a private-repo spec filename", () => {
   const PRIVATE_SPEC_NAMES = [

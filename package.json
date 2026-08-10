@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.scripts.json && pnpm -r run typecheck",
     "test": "node --test scripts/*.test.mjs && pnpm -r run test",
     "schema:parity": "node scripts/check-schema-parity.mjs",
-    "schema:parity:update": "node scripts/generate-schema-manifest.mjs"
+    "schema:parity:update": "node scripts/generate-schema-manifest.mjs",
+    "check:dist-leaks": "node scripts/check-dist-leaks.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

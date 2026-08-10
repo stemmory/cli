@@ -40,6 +40,13 @@ jobs:
 
       - run: pnpm run build
 
+      # STEM-105 follow-up: the published dist was believed to strip comments
+      # (see RELEASING.md's "accepted as-is" note) and does not — verified
+      # against the published 0.1.1, which shipped an internal ticket id and
+      # several private spec-doc citations in dist/index.d.ts. Runs against
+      # the real built artifact, so it must come after `pnpm run build`.
+      - run: pnpm run check:dist-leaks
+
       - run: pnpm run typecheck
 
       - run: pnpm run lint

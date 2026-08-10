@@ -30,10 +30,10 @@ export const frontmatterV1Schema = z.object({
   // must degrade with a warning, never hard-fail (§3), and a stricter bound
   // here would turn that into a `schema_mismatch` skip.
   schemaVersion: z.number().int().nonnegative(),
-  // AGENT_CONVENTIONS_KIT_SPEC.md §2.4's remaining four fields. All optional:
-  // no doc in this repo's `docs/features/` predates them, and reconcile.ts
-  // must keep ingesting every one of those unchanged (a missing optional
-  // field is a warning at most, never a skip — validate.ts).
+  // The remaining four optional fields (schema v1 §2.4): no doc in this
+  // repo's `docs/features/` predates them, and ingestion must keep
+  // accepting every one of those unchanged (a missing optional field is a
+  // warning at most, never a skip — validate.ts).
   owner: z.string().min(1).nullable(),
   /** ISO `YYYY-MM-DD`. "agents must touch on every edit" per §2.4 — absence still warns. */
   updated: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
