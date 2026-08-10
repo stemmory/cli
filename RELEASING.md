@@ -18,11 +18,19 @@ does not do" below for what that replacement does and does not achieve.
 
 ## Prerequisites before the first tag
 
-`.github/workflows/publish.yml` triggers only on a `vX.Y.Z` tag push. The
-two accidental-publish guards below are now **done**; `NPM_TOKEN` and the
-npm name recheck are what's left before anyone pushes a tag — not "before
-the first real release," before the first tag of any kind, since a tag is
-the only trigger this workflow has.
+`.github/workflows/publish.yml` triggers only on a `vX.Y.Z` tag push. As of
+2026-08-10 everything below is **done** except the npm name recheck, which is
+deliberately a just-before-tagging step rather than a one-off. "Before the
+first tag" means the first tag of any kind, not the first *real release* — a
+tag is this workflow's only trigger, so a throwaway one fires it too.
+
+**A visibility flip disarms these guards on a free plan.** Rulesets and
+environment protection rules are free on public repositories and Pro-only on
+private ones, so flipping this repo to private silently unenforced both, and
+flipping back restored them intact — verified, nothing had to be recreated.
+The settings persist either way, but do not assume they are *enforcing*
+during any period the repo is private: re-verify after any visibility
+change, before provisioning or using a publish credential.
 
 - **Tag protection ruleset restricting `v*` tag creation to admins**
   (Settings → Rules → Rulesets). **Done** — `Protect release tags (v*)`,
@@ -49,23 +57,46 @@ the only trigger this workflow has.
   YAML reference alone was never the gate; the reviewer requirement had to
   be added by hand, and now stays configured permanently, not just for the
   first release.
-- **`NPM_TOKEN` repository secret**, provisioned and confirmed able to
-  *create* the still-nonexistent unscoped `stemmory` package (most granular
-  npm tokens are scoped to packages that already exist; check npm's token
-  settings for a "new packages" allowance, or fall back to a classic
-  automation token). Not yet provisioned.
-- **Re-confirm npm name availability** immediately before the first tag —
-  `stemmory`, `@stemmory/schema`, and `@stemmory/cli` were last checked
-  2026-08-08 and were available, which is a point-in-time fact, not a
-  reservation.
+- **`NPM_TOKEN` repository secret.** **Done** — provisioned. Two things it
+  has to be able to do, and neither is the default:
+  - *Create* the still-nonexistent unscoped `stemmory` package. Most granular
+    npm tokens are scoped to packages that already exist; check npm's token
+    settings for a "new packages" allowance, or fall back to a classic
+    automation token.
+  - Publish into the **`@stemmory` scope**. `@stemmory/schema` publishes
+    *first*, so if the scope does not exist or the token's account cannot
+    publish to it, the run fails on step one and `stemmory` is never
+    attempted. Confirm on npmjs.com that an organization named `stemmory`
+    exists and the token's account can publish to it — an anonymous registry
+    lookup cannot tell "no such scope" from "not visible to you", so this
+    check has to be done signed in.
+- **Re-confirm npm name availability** immediately before the first tag.
+  Availability is a point-in-time fact, not a reservation. Two names ship:
+  the unscoped **`stemmory`** (from `packages/cli` — the directory name and
+  the published name differ) and the scoped **`@stemmory/schema`**.
+  `@stemmory/cli` is only the *fallback* name for the CLI if the unscoped
+  `stemmory` is ever taken; nothing publishes under it today. Once the
+  `@stemmory` scope is yours, no one else can take a name inside it — the
+  unscoped `stemmory` is the only one genuinely exposed, which is why this
+  recheck exists. All three were free on 2026-08-10.
 
-## Publishing is blocked independently of the above, for now
+## `private: true` — removed 2026-08-10
 
-Both `packages/cli/package.json` and `packages/schema/package.json` still
-carry `"private": true`. Removing that is a deliberate, ordered step (see
-below) and is out of scope for this document's edits — it happens
-immediately after repository visibility flips to public, not before, and
-not as a drive-by change.
+Both packages carried `"private": true` as the field-based half of the
+publish guard. It came off *after* the repository went public, in that order
+deliberately (see the sequence below), so the two independent halves of the
+guard were never down at the same time.
+
+One thing settled at the same time, because the note that used to sit beside
+`private` said to remove `publishConfig` along with it — which is right for
+one package and wrong for the other:
+
+- `stemmory` is **unscoped**, so `publishConfig.access: "public"` was a no-op
+  and was removed with the note.
+- `@stemmory/schema` is **scoped**, and npm defaults scoped packages to
+  `access=restricted`. Removing `publishConfig` there would make the first
+  publish fail or land the package private. It is required, not leftover, and
+  the note beside it now says so.
 
 ## The publish sequence — order matters
 
