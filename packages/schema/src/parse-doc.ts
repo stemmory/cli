@@ -33,13 +33,23 @@ export type ParsedDoc = {
   parent: string | null;
   /**
    * GitHub-ingest authority only — `"planned" | "deprecated"`, never
-   * `in_progress`/`live`/`needs_work` (DATA_MODEL.md §4; status.ts). A doc
-   * that declares `building`/`shipped`/etc. still lands here as `planned`;
-   * see the ingest-authority warning this file pushes when that happens.
+   * `in_progress`/`live`/`needs_work` (§4's write-priority rule; status.ts).
+   * A doc that declares `building`/`shipped`/etc. still lands here as
+   * `planned`; see the ingest-authority warning this file pushes when that
+   * happens.
    */
   status: GithubIngestNodeStatus | null;
   type: "feature" | "subfeature";
   sortOrder: number;
+  /**
+   * The doc's resolved `schema:` value (validate.ts's `resolveSchemaVersion`
+   * — defaults to `CURRENT_SCHEMA_VERSION` when the field is absent, never
+   * skipped). Not yet consumed by ingestion; the product app's Conformance
+   * panel is the first consumer — it's how the panel computes the
+   * "conventions kit outdated, run `stemmory update`" nudge without
+   * re-deriving version skew itself.
+   */
+  schemaVersion: number;
   excerpt: string | null;
   decisions: ParsedDecision[];
   // AGENT_CONVENTIONS_KIT_SPEC.md §2.4's remaining fields. All optional and
@@ -66,10 +76,10 @@ export type ParseResult =
 
 /**
  * `README.md` is excluded BY NAME, and a file with no `slug:`/`feature:` key
- * is skipped. CONVENTIONS.md §2: both are SILENT skips, not `sync.unmapped` —
- * "a directory needs to be able to explain itself without generating triage
- * noise." Returning a skip reason rather than an error is what keeps them out
- * of the activity log.
+ * is skipped. §2's "silent skip" contract: both are SILENT skips, not
+ * `sync.unmapped` — "a directory needs to be able to explain itself without
+ * generating triage noise." Returning a skip reason rather than an error is
+ * what keeps them out of the activity log.
  */
 export function shouldSkipByName(path: string): boolean {
   return path.split("/").pop()?.toLowerCase() === "readme.md";
@@ -131,6 +141,7 @@ export function parseDoc(path: string, content: string): ParseResult {
       status,
       type: fm1.type,
       sortOrder: fm1.sort,
+      schemaVersion: fm1.schemaVersion,
       excerpt: firstParagraph(body),
       decisions: parsedDecisions.decisions,
       owner: fm1.owner,

@@ -10,12 +10,23 @@
 // accidental or unreviewed edit to the mirrored source landing without
 // updating the manifest alongside it.
 //
-// What it does NOT catch: the product repo's `packages/schema` changing
-// after today and nobody re-mirroring here. There is no automated bridge
-// between the two repos (by design - this repo is public, that one is not).
-// Closing that gap requires a human (or a scheduled job with access to both
-// repos) to re-run `pnpm schema:parity:update` against a fresh checkout of
-// the product repo and commit the result.
+// What it does NOT catch, from THIS side: the product repo's
+// `packages/schema` changing after today and nobody re-mirroring here. This
+// repo is public and the product repo is not, so CI here has no credentials
+// to clone it and diff directly - that half of the bridge cannot live here.
+//
+// STEM-105: the other half now does exist, on the product repo's side. That
+// repo is private but this one is public, so ITS CI clones this repo (no
+// credentials needed - it's public) and diffs packages/schema directly
+// against what's actually committed here, on every product-repo PR. See
+// that repo's scripts/check-schema-mirror.sh. A drift caused by an edit
+// landing in this repo without updating packages/schema/.parity-manifest.json
+// is caught here, same run; a drift caused by the product repo's copy
+// changing without a matching mirror commit here is caught over there, next
+// time its CI runs. Between the two, "someone edited one copy and nobody
+// noticed" no longer has a blind spot - but it still takes a human to
+// reconcile the two trees and re-run `pnpm schema:parity:update` here,
+// there is no automated re-mirroring.
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
