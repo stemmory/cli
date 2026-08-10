@@ -145,9 +145,19 @@ than a retry of the same one.
 
 ## Decisions on record
 
-Two items flagged during the pre-flip review were accepted as-is rather
-than fixed. Recording the decision and the reasoning here so it isn't
-implicit:
+Three items from the pre-flip review are recorded here so the reasoning
+isn't implicit. The first was fixed; the other two were accepted as-is.
+
+- **LICENSE copyright holder — decided, and applied.** All three `LICENSE`
+  files (root, `packages/cli/`, `packages/schema/` — plain copies, not
+  symlinks) now read `Copyright (c) 2026 AdyriX Systems Private Limited`,
+  verified byte-identical to each other after the edit. The previous value
+  named the product brand, which is not a legal entity and so cannot hold
+  copyright. The licence itself is unchanged: still MIT, matching the
+  `license` field in both published `package.json` files — this was a
+  holder correction, not a licence change. It was deliberately left for a
+  human rather than decided by default, because the line is not retractable
+  once the repo is public and forked.
 
 - **Fixture content.** `packages/schema/fixtures/decision-canonical.md`
   and `packages/schema/fixtures/kit-fields-populated.md` carry a first
