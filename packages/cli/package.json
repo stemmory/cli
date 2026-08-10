@@ -1,0 +1,46 @@
+{
+  "name": "stemmory",
+  "version": "0.1.0",
+  "description": "Stemmory Conventions Kit CLI — installs the conventions skill and AGENTS.md fragment, and lints feature docs against the shared schema.",
+  "license": "MIT",
+  "//private": "STEM-74: remove `private` + `publishConfig` in story 5.4, once the repo goes public and npm provenance can be issued.",
+  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stemmory/cli.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/stemmory/cli/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/stemmory/cli/issues"
+  },
+  "type": "module",
+  "bin": {
+    "stemmory": "bin/stemmory.js"
+  },
+  "files": [
+    "bin/stemmory.js",
+    "src/cli.js",
+    "src/lib",
+    "src/commands",
+    "!src/lib/**/*.test.js",
+    "!src/commands/**/*.test.js"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@stemmory/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
