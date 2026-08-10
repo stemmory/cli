@@ -243,6 +243,10 @@ describe("schema version skew (spec §3) — never a hard failure", () => {
       r.ok && r.warnings.some((w) => w.includes("newer") && w.includes("stemmory update")),
     ).toBe(true);
     expect(r.ok && r.warnings.some((w) => w.includes("cannot be set from a doc"))).toBe(true);
+    // STEM-84: the Conformance panel's kit-outdated nudge reads this field
+    // directly rather than re-deriving version skew — must carry the doc's
+    // declared value through unchanged, not clamp it to CURRENT.
+    expect(r.ok && r.doc.schemaVersion).toBe(99);
   });
 
   it("a schema OLDER than this validator also degrades gracefully, with a warning", () => {
@@ -251,6 +255,14 @@ describe("schema version skew (spec §3) — never a hard failure", () => {
     expect(r.ok).toBe(true);
     expect(r.ok && r.doc.slug).toBe("alpha/from-the-past");
     expect(r.ok && r.warnings.some((w) => w.includes("older"))).toBe(true);
+    expect(r.ok && r.doc.schemaVersion).toBe(0);
+  });
+
+  it("no schema: declared at all resolves to CURRENT_SCHEMA_VERSION, not a sentinel", () => {
+    const name = "kit-fields-absent.md";
+    const r = parseDoc(name, fixture(name));
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.doc.schemaVersion).toBe(1);
   });
 });
 

@@ -40,6 +40,15 @@ export type ParsedDoc = {
   status: GithubIngestNodeStatus | null;
   type: "feature" | "subfeature";
   sortOrder: number;
+  /**
+   * The doc's resolved `schema:` value (validate.ts's `resolveSchemaVersion`
+   * — defaults to `CURRENT_SCHEMA_VERSION` when the field is absent, never
+   * skipped). Carried through unused by `reconcile.ts` today; STEM-84's
+   * Conformance panel is the first consumer — it's how the panel computes the
+   * "conventions kit outdated, run `stemmory update`" nudge (spec §3) without
+   * re-deriving version skew itself.
+   */
+  schemaVersion: number;
   excerpt: string | null;
   decisions: ParsedDecision[];
   // AGENT_CONVENTIONS_KIT_SPEC.md §2.4's remaining fields. All optional and
@@ -131,6 +140,7 @@ export function parseDoc(path: string, content: string): ParseResult {
       status,
       type: fm1.type,
       sortOrder: fm1.sort,
+      schemaVersion: fm1.schemaVersion,
       excerpt: firstParagraph(body),
       decisions: parsedDecisions.decisions,
       owner: fm1.owner,
