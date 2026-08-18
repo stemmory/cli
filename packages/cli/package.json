@@ -1,6 +1,6 @@
 {
   "name": "stemmory",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Stemmory Conventions Kit CLI — installs the conventions skill and AGENTS.md fragment, and lints feature docs against the shared schema.",
   "license": "MIT",
   "author": "AdyriX Systems Private Limited",

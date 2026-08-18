@@ -6,6 +6,27 @@ version number.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — unreleased
+
+### Changed
+
+- **BREAKING: `parseFrontmatterBlock` no longer returns a bare `Map<string, string>`.**
+  It now returns `{ fields: Map<string, string>, duplicates: { key, firstLine, line }[] }`.
+  `validateFrontmatterV1` takes that same shape instead of a `ReadonlyMap`. Update
+  any direct caller from `parseFrontmatterBlock(block).get(key)` to
+  `parseFrontmatterBlock(block).fields.get(key)`.
+
+### Fixed
+
+- **Duplicate frontmatter keys (`slug:` twice, `title:` twice, any key) are now
+  refused, not silently last-wins** (STEM-111). A rename that leaves two answers
+  for one key is not knowable, so `stemmory lint` now reports it as a new
+  `duplicate_key` skip reason instead of staying green. Detected on key
+  occurrence during the scan — an empty second occurrence (`slug: a` / a bare
+  `slug:`) is still caught even though it doesn't change which value parses.
+  Only fires for a doc that already resolved a `slug:` (or legacy `feature:`),
+  so a doc with no slug at all keeps its existing silent-skip contract.
+
 ## [0.1.2] — unreleased
 
 ### Fixed

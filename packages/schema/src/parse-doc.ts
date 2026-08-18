@@ -68,7 +68,8 @@ export type SkipReason =
   | "no_feature_key"
   | "invalid_slug"
   | "slug_conflict"
-  | "no_title";
+  | "no_title"
+  | "duplicate_key";
 
 export type ParseResult =
   | { ok: true; doc: ParsedDoc; warnings: string[] }
@@ -96,6 +97,7 @@ const SKIP_REASON_BY_CODE: Record<IssueCode, SkipReason> = {
   // but every code needs a mapping, and "invalid_slug" is the closest existing
   // web-app skip bucket for "the frontmatter did not validate".
   schema_mismatch: "invalid_slug",
+  duplicate_key: "duplicate_key",
 };
 
 export function parseDoc(path: string, content: string): ParseResult {

@@ -5,9 +5,13 @@
 // fallbacks for `type:`/`sort:`.
 import { describe, expect, it } from "vitest";
 
+import type { FrontmatterDuplicate } from "./frontmatter";
 import { validateFrontmatterV1 } from "./validate";
 
-const fm = (entries: Record<string, string>) => new Map(Object.entries(entries));
+const fm = (entries: Record<string, string>, duplicates: FrontmatterDuplicate[] = []) => ({
+  fields: new Map(Object.entries(entries)),
+  duplicates,
+});
 
 describe("schema: malformed value", () => {
   it("a non-numeric schema value warns and defaults to the current version", () => {
@@ -154,5 +158,36 @@ describe("legacy feature: + slug: together", () => {
     const r = validateFrontmatterV1(fm({ slug: "auth", feature: "billing", title: "X" }));
     expect(r.value).toBeNull();
     expect(!r.value && r.errors[0].code).toBe("slug_conflict");
+  });
+});
+
+describe("duplicate frontmatter keys (STEM-111)", () => {
+  it("a duplicate key is refused with the offending key and both line numbers", () => {
+    const r = validateFrontmatterV1(
+      fm({ slug: "auth", title: "Auth" }, [{ key: "slug", firstLine: 2, line: 3 }]),
+    );
+    expect(r.value).toBeNull();
+    expect(!r.value && r.errors[0].code).toBe("duplicate_key");
+    expect(!r.value && r.errors[0].field).toBe("slug");
+    expect(!r.value && r.errors[0].detail).toBe("slug");
+    expect(!r.value && r.errors[0].message).toContain("frontmatter line 3, first seen at line 2");
+  });
+
+  // Ordering (STEM-111): only a doc that actually resolved a slug can be
+  // refused for a duplicate — this preserves the silent-skip contract for
+  // docs that never tried to be feature docs at all.
+  it("no slug at all still silently skips as missing_slug, even with an unrelated duplicate key", () => {
+    const r = validateFrontmatterV1(fm({ title: "X" }, [{ key: "foo", firstLine: 2, line: 3 }]));
+    expect(r.value).toBeNull();
+    expect(!r.value && r.errors[0].code).toBe("missing_slug");
+  });
+
+  it("a duplicate of a non-slug key (e.g. title) is refused the same way", () => {
+    const r = validateFrontmatterV1(
+      fm({ slug: "auth", title: "Auth" }, [{ key: "title", firstLine: 3, line: 4 }]),
+    );
+    expect(r.value).toBeNull();
+    expect(!r.value && r.errors[0].code).toBe("duplicate_key");
+    expect(!r.value && r.errors[0].field).toBe("title");
   });
 });
