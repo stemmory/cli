@@ -43,6 +43,7 @@ const ALL_FIXTURES = [
   "malformed-updated-date.md",
   "links-non-empty.md",
   "hierarchical-slug-depth-4.md",
+  "duplicate-slug-key.md",
 ];
 
 it("fixtures/ on disk exactly matches the list this suite exercises", () => {
@@ -206,6 +207,14 @@ describe("hierarchical slugs (CONVENTIONS.md §3, D-1 #4)", () => {
     expect(r.ok).toBe(true);
     expect(r.ok && r.doc.slug).toBe("auth/roles/admin/permissions");
     expect(r.ok && r.warnings).toEqual([]);
+  });
+});
+
+describe("duplicate frontmatter keys (STEM-111, PR #207 shape)", () => {
+  it("a doc with slug: declared twice is refused, not silently last-wins", () => {
+    const name = "duplicate-slug-key.md";
+    const r = parseDoc(name, fixture(name));
+    expect(r).toEqual({ ok: false, skip: "duplicate_key", detail: "slug" });
   });
 });
 

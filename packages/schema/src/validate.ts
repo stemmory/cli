@@ -39,6 +39,7 @@
 // decides whether the result is actually schema-v1-shaped.
 import { z } from "zod";
 
+import type { ParsedFrontmatterBlock } from "./frontmatter";
 import { parseLinks } from "./links";
 import { isValidSlug, SLUG_GRAMMAR_HINT } from "./slug";
 import { CURRENT_SCHEMA_VERSION, frontmatterV1Schema, type FrontmatterV1 } from "./schema-v1";
@@ -54,7 +55,8 @@ export type IssueCode =
   | "invalid_slug"
   | "invalid_parent"
   | "missing_title"
-  | "schema_mismatch";
+  | "schema_mismatch"
+  | "duplicate_key";
 
 export type ValidationIssue = { code: IssueCode; field: string; message: string; detail?: string };
 
@@ -194,15 +196,30 @@ function resolveSlug(
   return { slug: raw };
 }
 
-export function validateFrontmatterV1(fm: ReadonlyMap<string, string>): ValidateResult {
+export function validateFrontmatterV1(fm: ParsedFrontmatterBlock): ValidateResult {
   const warnings: string[] = [];
-  const schemaVersion = resolveSchemaVersion(fm.get("schema"), warnings);
+  const schemaVersion = resolveSchemaVersion(fm.fields.get("schema"), warnings);
 
-  const slugResult = resolveSlug(fm, warnings);
+  const slugResult = resolveSlug(fm.fields, warnings);
   if ("error" in slugResult) return fail(warnings, slugResult.error);
   const { slug } = slugResult;
 
-  const rawTitle = fm.get("title");
+  // Only a doc that actually declared a slug reaches here — a doc with no
+  // slug at all already returned `missing_slug` above and keeps its
+  // silent-skip contract untouched, duplicate `foo:` or not. Ordering
+  // (STEM-111): after slug resolves, before the title check — refusal
+  // needs a real doc to refuse.
+  if (fm.duplicates.length > 0) {
+    const dup = fm.duplicates[0];
+    return fail(warnings, {
+      code: "duplicate_key",
+      field: dup.key,
+      message: `frontmatter declares "${dup.key}" more than once — frontmatter line ${dup.line}, first seen at line ${dup.firstLine}. Remove the duplicate.`,
+      detail: dup.key,
+    });
+  }
+
+  const rawTitle = fm.fields.get("title");
   if (!rawTitle) {
     return fail(warnings, {
       code: "missing_title",
@@ -212,7 +229,7 @@ export function validateFrontmatterV1(fm: ReadonlyMap<string, string>): Validate
     });
   }
 
-  const rawParent = fm.get("parent") ?? null;
+  const rawParent = fm.fields.get("parent") ?? null;
   if (rawParent !== null && !isValidSlug(rawParent)) {
     return fail(warnings, {
       code: "invalid_parent",
@@ -230,7 +247,7 @@ export function validateFrontmatterV1(fm: ReadonlyMap<string, string>): Validate
     warnings.push(`parent "${slug}" is this doc's own feature key — ignored, node left top-level`);
   }
 
-  const rawStatus = fm.get("status");
+  const rawStatus = fm.fields.get("status");
   let status: DocStatus | null = null;
   if (rawStatus !== undefined) {
     if (isDocStatus(rawStatus)) {
@@ -242,18 +259,18 @@ export function validateFrontmatterV1(fm: ReadonlyMap<string, string>): Validate
     }
   }
 
-  const rawType = fm.get("type");
+  const rawType = fm.fields.get("type");
   const type: "feature" | "subfeature" =
     rawType === "feature" || rawType === "subfeature" ? rawType : parent ? "subfeature" : "feature";
 
-  const rawSort = fm.get("sort");
+  const rawSort = fm.fields.get("sort");
   const sortParsed = rawSort !== undefined ? digitsToNumber.safeParse(rawSort) : undefined;
   const sort = sortParsed?.success ? sortParsed.data : 0;
 
-  const owner = fm.get("owner") ?? null;
-  const linearTeam = fm.get("linear_team") ?? null;
-  const updated = resolveUpdated(fm.get("updated"), fm.has("schema"), warnings);
-  const links = parseLinks(fm.get("links"), warnings);
+  const owner = fm.fields.get("owner") ?? null;
+  const linearTeam = fm.fields.get("linear_team") ?? null;
+  const updated = resolveUpdated(fm.fields.get("updated"), fm.fields.has("schema"), warnings);
+  const links = parseLinks(fm.fields.get("links"), warnings);
 
   const finalCheck = frontmatterV1Schema.safeParse({
     slug,

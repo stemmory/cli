@@ -1,6 +1,6 @@
 {
   "name": "@stemmory/schema",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Frontmatter schema v1 validator for Stemmory feature docs — parses and validates the frontmatter block and the decision-line grammar.",
   "license": "MIT",
   "author": "AdyriX Systems Private Limited",
