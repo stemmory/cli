@@ -6,7 +6,7 @@ version number.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — unreleased
+## [0.2.0] — 2026-08-19
 
 ### Changed
 
@@ -26,8 +26,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `slug:`) is still caught even though it doesn't change which value parses.
   Only fires for a doc that already resolved a `slug:` (or legacy `feature:`),
   so a doc with no slug at all keeps its existing silent-skip contract.
+- **`duplicate_key` now reports a real file line**, not a line relative to the
+  frontmatter block, so following a refusal message to an editor lands on the
+  offending line.
 
-## [0.1.2] — unreleased
+## [0.1.2] — 2026-08-10
 
 ### Fixed
 
@@ -98,6 +101,7 @@ First public release.
 
 Published without provenance attestations; see 0.1.1.
 
+[0.2.0]: https://github.com/stemmory/cli/releases/tag/v0.2.0
 [0.1.2]: https://github.com/stemmory/cli/releases/tag/v0.1.2
 [0.1.1]: https://github.com/stemmory/cli/releases/tag/v0.1.1
 [0.1.0]: https://github.com/stemmory/cli/releases/tag/v0.1.0
