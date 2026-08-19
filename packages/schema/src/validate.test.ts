@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { FrontmatterDuplicate } from "./frontmatter";
+import { parseFrontmatterBlock, splitFrontmatter } from "./frontmatter";
 import { validateFrontmatterV1 } from "./validate";
 
 const fm = (entries: Record<string, string>, duplicates: FrontmatterDuplicate[] = []) => ({
@@ -170,7 +171,7 @@ describe("duplicate frontmatter keys (STEM-111)", () => {
     expect(!r.value && r.errors[0].code).toBe("duplicate_key");
     expect(!r.value && r.errors[0].field).toBe("slug");
     expect(!r.value && r.errors[0].detail).toBe("slug");
-    expect(!r.value && r.errors[0].message).toContain("frontmatter line 3, first seen at line 2");
+    expect(!r.value && r.errors[0].message).toContain("line 3, first seen at line 2");
   });
 
   // Ordering (STEM-111): only a doc that actually resolved a slug can be
@@ -189,5 +190,36 @@ describe("duplicate frontmatter keys (STEM-111)", () => {
     expect(r.value).toBeNull();
     expect(!r.value && r.errors[0].code).toBe("duplicate_key");
     expect(!r.value && r.errors[0].field).toBe("title");
+  });
+
+  // Which duplicate gets reported was unpinned when a block has TWO
+  // different duplicated keys — `fm.duplicates[0]` happens to be first, but
+  // nothing asserted that until now. First is the right choice (top-down
+  // reading order); this locks it in.
+  it("with two different duplicated keys, the FIRST one is the one reported", () => {
+    const r = validateFrontmatterV1(
+      fm({ slug: "auth", title: "Auth" }, [
+        { key: "slug", firstLine: 2, line: 3 },
+        { key: "title", firstLine: 4, line: 5 },
+      ]),
+    );
+    expect(r.value).toBeNull();
+    expect(!r.value && r.errors[0].field).toBe("slug");
+  });
+
+  // The line-number CONVENTION itself was never checked against a real file
+  // — every other test here hand-builds a `duplicates` array. This runs the
+  // real parser over real file content and checks the reported numbers
+  // against that file's actual line numbering (file lines: 1 `---`,
+  // 2 `schema: 1`, 3 `slug: import-wizard` (first), 4 `slug: import-wizard`
+  // (duplicate), 5 `title: Import wizard`, 6 `---`).
+  it("the reported line numbers are real FILE lines, not lines relative to the frontmatter block", () => {
+    const content =
+      "---\nschema: 1\nslug: import-wizard\nslug: import-wizard\ntitle: Import wizard\n---\n\nBody.\n";
+    const split = splitFrontmatter(content);
+    if (!split) throw new Error("expected the fixture to split");
+    const r = validateFrontmatterV1(parseFrontmatterBlock(split.frontmatter));
+    expect(r.value).toBeNull();
+    expect(!r.value && r.errors[0].message).toContain("line 4, first seen at line 3");
   });
 });

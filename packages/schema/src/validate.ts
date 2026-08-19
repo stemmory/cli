@@ -214,7 +214,7 @@ export function validateFrontmatterV1(fm: ParsedFrontmatterBlock): ValidateResul
     return fail(warnings, {
       code: "duplicate_key",
       field: dup.key,
-      message: `frontmatter declares "${dup.key}" more than once — frontmatter line ${dup.line}, first seen at line ${dup.firstLine}. Remove the duplicate.`,
+      message: `frontmatter declares "${dup.key}" more than once — line ${dup.line}, first seen at line ${dup.firstLine}. Remove the duplicate.`,
       detail: dup.key,
     });
   }

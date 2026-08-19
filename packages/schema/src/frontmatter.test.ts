@@ -16,13 +16,13 @@ describe("parseFrontmatterBlock: duplicate keys", () => {
   it("an identical-value duplicate is still flagged (not just the differing-value case)", () => {
     const r = parseFrontmatterBlock("slug: a\nslug: a");
     expect(r.fields.get("slug")).toBe("a");
-    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 1, line: 2 }]);
+    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 2, line: 3 }]);
   });
 
   it("a differing-value duplicate is flagged, with the last non-empty value winning in `fields`", () => {
     const r = parseFrontmatterBlock("slug: a\nslug: b");
     expect(r.fields.get("slug")).toBe("b");
-    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 1, line: 2 }]);
+    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 2, line: 3 }]);
   });
 
   it("an empty-valued second occurrence is still flagged even though `fields` keeps the first value", () => {
@@ -31,12 +31,12 @@ describe("parseFrontmatterBlock: duplicate keys", () => {
     // the Map, but it happened, and duplicate detection reads occurrence,
     // not the Map, so it's still caught.
     expect(r.fields.get("slug")).toBe("a");
-    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 1, line: 2 }]);
+    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 2, line: 3 }]);
   });
 
   it("a duplicate of a non-schema key is flagged the same way as slug", () => {
     const r = parseFrontmatterBlock("owner: alice\nowner: bob");
-    expect(r.duplicates).toEqual([{ key: "owner", firstLine: 1, line: 2 }]);
+    expect(r.duplicates).toEqual([{ key: "owner", firstLine: 2, line: 3 }]);
   });
 
   it("`Slug:` and `slug:` are distinct keys (case-sensitive) — not a duplicate", () => {
@@ -46,9 +46,9 @@ describe("parseFrontmatterBlock: duplicate keys", () => {
     expect(r.duplicates).toEqual([]);
   });
 
-  it("firstLine/line are 1-based within the block, counted from wherever the duplicate actually sits", () => {
+  it("firstLine/line are real file lines (the caller's block always follows one stripped `---` line), counted from wherever the duplicate actually sits", () => {
     const r = parseFrontmatterBlock("schema: 1\ntitle: X\nslug: a\nslug: b");
-    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 3, line: 4 }]);
+    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 4, line: 5 }]);
   });
 
   it("a fully commented-out line is not a key occurrence — no duplicate", () => {
@@ -60,14 +60,14 @@ describe("parseFrontmatterBlock: duplicate keys", () => {
   it("a duplicate line carrying a trailing inline comment is still detected", () => {
     const r = parseFrontmatterBlock("slug: a\nslug: b  # renamed, forgot to delete the old one");
     expect(r.fields.get("slug")).toBe("b");
-    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 1, line: 2 }]);
+    expect(r.duplicates).toEqual([{ key: "slug", firstLine: 2, line: 3 }]);
   });
 
   it("three occurrences of the same key: every occurrence after the first is flagged against the first line", () => {
     const r = parseFrontmatterBlock("slug: a\nslug: b\nslug: c");
     expect(r.duplicates).toEqual([
-      { key: "slug", firstLine: 1, line: 2 },
-      { key: "slug", firstLine: 1, line: 3 },
+      { key: "slug", firstLine: 2, line: 3 },
+      { key: "slug", firstLine: 2, line: 4 },
     ]);
   });
 
