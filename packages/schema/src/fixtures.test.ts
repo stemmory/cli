@@ -79,6 +79,8 @@ it("no warning emitted by parseDoc cites a private-repo spec filename", () => {
     "ONBOARDING_IMPORT_SPEC.md",
     "DATA_MODEL.md",
     "BUILD_AUDIT.md",
+    "MASTER_DECISIONS.md",
+    "STEMMORY_MASTER_DECISIONS.md",
   ];
   for (const name of ALL_FIXTURES) {
     const r = parseDoc(name, fixture(name));

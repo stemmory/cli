@@ -15,9 +15,12 @@
 // NON-EMPTY value for a key (an empty second occurrence, e.g. `slug: a`
 // then a bare `slug:`, leaves `a` in the map untouched), so a duplicate
 // that never changed the parsed result would be invisible to any check
-// that only looked at the returned Map. Lines are 1-based WITHIN this
-// block (the caller strips the opening `---` before calling this, so this
-// function cannot see, and must not claim, a file line).
+// that only looked at the returned Map. Lines are reported as real FILE
+// lines, not lines relative to this block: `splitFrontmatter`'s regex is
+// anchored at `^---\r?\n`, so the opening delimiter is unconditionally file
+// line 1 and every block line N is always file line N+1 — a fixed offset,
+// not a heuristic. A reader following a refusal message to their editor
+// should land on the right line.
 export type FrontmatterDuplicate = { key: string; firstLine: number; line: number };
 export type ParsedFrontmatterBlock = {
   fields: Map<string, string>;
@@ -30,7 +33,7 @@ export function parseFrontmatterBlock(block: string): ParsedFrontmatterBlock {
   const duplicates: FrontmatterDuplicate[] = [];
   const lines = block.split("\n");
   for (let i = 0; i < lines.length; i++) {
-    const lineNumber = i + 1;
+    const lineNumber = i + 2; // +1 for 1-based, +1 for the opening `---` this block excludes
     const withoutComment = lines[i].replace(/\s+#.*$/, "");
     const m = withoutComment.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$/);
     if (!m) continue;
