@@ -34,12 +34,10 @@ export { isValidSlug, MAX_SLUG_DEPTH, SLUG_GRAMMAR_HINT } from "./slug";
 
 export {
   DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY,
-  DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST,
   DOC_STATUS_VALUES,
   NODE_STATUS_VALUES,
   isDocStatus,
   type DocDerivedNodeStatus,
   type DocStatus,
-  type GithubIngestNodeStatus,
   type NodeStatus,
 } from "./status";

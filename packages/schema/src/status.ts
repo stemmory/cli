@@ -1,26 +1,31 @@
 // stemmory/packages/schema/src/status.ts
 //
-// Two vocabularies, TWO mappings — not one (STEM-70 decision D-1 #2,
-// corrected). Documents describe INTENT (`idea`, `building`, ...); the graph
-// stores FACT — `node_status`, the DB enum from DATA_MODEL.md §1. They are not
-// the same words on purpose, and which mapping applies depends on WHO is
-// writing: DATA_MODEL.md §4 is a LOCKED write-priority rule —
+// One vocabulary translation, one map (STEM-70 decision D-1 #2, corrected by
+// STEM-196's founder ruling — 2026-08-27). Documents describe INTENT (`idea`,
+// `building`, ...); the graph stores FACT — `node_status`, the DB enum from
+// DATA_MODEL.md §1. They are not the same words on purpose.
 //
-//   user = agent > derived (linear) > github frontmatter > system default
+// STEM-196: doc frontmatter is the authority a repo-only org (never
+// connected Linear) needs to ever see a node go `live` — every other
+// producer of `live` is downstream of a Linear ticket or a write path that
+// does not exist (see STEM-196's founder ruling for the full survey). So
+// `status: shipped` in `docs/features/*.md` now reaches `live`, through the
+// same full-vocabulary map CLI `stemmory lint` and future agent/MCP writes
+// already used.
 //
-// — and "GitHub frontmatter may only raise a node from nothing to `planned`,
-// or set `deprecated`; it never overrides `in_progress`/`live` (docs lag
-// reality)." A doc's `status: shipped` sitting stale for three weeks must
-// never promote a node to `live` out from under a real ticket-derived state —
-// that is exactly the sync fight this file's split exists to prevent.
-//
-// So: TWO maps, named for the authority each one is allowed to exercise.
-//   - EXPLICIT authority (CLI `stemmory lint`, and future agent/MCP writes,
-//     which §4 puts ABOVE derivation) may use the full vocabulary.
-//   - GITHUB INGEST authority (what `apps/web/lib/sync/markdown.ts` ->
-//     `reconcile.ts` actually consumes today) CLAMPS — its return type is
-//     restricted to `"planned" | "deprecated"` so `in_progress`/`live` are
-//     unreachable from a doc by construction, not by convention.
+// This file used to carry a SECOND map that clamped GitHub-frontmatter
+// ingest to `"planned" | "deprecated"`, so a doc could never race ahead of
+// real ticket-derived state. That protection still exists — it just moved.
+// It is now `applyStatusWrite`'s precedence guard in
+// `apps/web/lib/sync/derive.ts`, which runs *after* this map and decides
+// whether a `source: "github"` write is allowed to land at all. Clamping the
+// VALUE here and gating the WRITE there were doing the same job twice; only
+// one of them can also produce `live`, so the gate is the one that survives.
+// A doc's `status: shipped` sitting stale for three weeks still cannot
+// promote a node to `live` out from under a real ticket-derived state —
+// DATA_MODEL.md §4.1's authority order already refuses a `github` write
+// whenever the node's current status came from `linear`/`user`/`agent`,
+// before the guard's content check ever runs.
 export const DOC_STATUS_VALUES = [
   "idea",
   "planned",
@@ -50,10 +55,12 @@ export type NodeStatus = (typeof NODE_STATUS_VALUES)[number];
 export type DocDerivedNodeStatus = Exclude<NodeStatus, "needs_work">;
 
 /**
- * EXPLICIT authority only: CLI `stemmory lint`, and future agent/MCP writes —
- * both of which §4's write-priority rule ranks ABOVE derivation. Do NOT use
- * this for GitHub-frontmatter ingest; that path's authority is strictly
- * narrower — see `DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST` below.
+ * The one doc-status -> node-status translation (STEM-196). Used by CLI
+ * `stemmory lint`, future agent/MCP writes, AND — since STEM-196's founder
+ * ruling — GitHub-frontmatter ingest (`parseDoc` in `parse-doc.ts`). All
+ * three write `node_status` through the same words; what differs between
+ * them is `WRITE_AUTHORITY` and the `github`-only precedence guard in
+ * `apps/web/lib/sync/derive.ts`'s `applyStatusWrite`, not this map.
  */
 export const DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY: Readonly<
   Record<DocStatus, DocDerivedNodeStatus>
@@ -62,25 +69,6 @@ export const DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY: Readonly<
   planned: "planned",
   building: "in_progress",
   shipped: "live",
-  paused: "planned",
-  deprecated: "deprecated",
-};
-
-/**
- * §4: what a doc can achieve through GitHub-frontmatter ingest — the only
- * path the product app's markdown sync actually exercises. The return type
- * is the enforcement: `in_progress`/`live`/`needs_work` are not values this
- * type can hold, so a call site cannot accidentally widen it.
- */
-export type GithubIngestNodeStatus = "planned" | "deprecated";
-
-export const DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST: Readonly<
-  Record<DocStatus, GithubIngestNodeStatus>
-> = {
-  idea: "planned",
-  planned: "planned",
-  building: "planned",
-  shipped: "planned",
   paused: "planned",
   deprecated: "deprecated",
 };

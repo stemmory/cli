@@ -7,21 +7,25 @@
 // depends on the wider document: `## Decisions` parsing, the excerpt, and the
 // doc-status -> node_status mapping.
 //
-// ⚠️ STATUS AUTHORITY (STEM-70 D-1 #2, corrected): this is the
-// GitHub-frontmatter INGEST path — `apps/web/lib/sync/markdown.ts` ->
-// `github.ts` -> `reconcile.ts` — which DATA_MODEL.md §4 ranks BELOW ticket
-// derivation. It therefore uses `DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST`
-// (clamps to `planned`/`deprecated` only), never the EXPLICIT-authority map.
-// Using the wrong map here is exactly the bug this file exists to prevent: a
-// stale `status: shipped` would silently promote a node to `live` out from
-// under its real ticket state.
+// ⚠️ STATUS AUTHORITY (STEM-70 D-1 #2; corrected again by STEM-196's founder
+// ruling, 2026-08-27): this is the GitHub-frontmatter INGEST path —
+// `apps/web/lib/sync/markdown.ts` -> `github.ts` -> `reconcile.ts` — which
+// DATA_MODEL.md §4 ranks BELOW ticket derivation. It now uses the full
+// `DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY` map — the same one CLI
+// `stemmory lint` and future agent/MCP writes use — so `status: shipped` can
+// reach `live` (STEM-196: a repo-only org that never connected Linear has no
+// other way to ever see a node go live). What still ranks this path BELOW
+// derivation is not this map anymore; it is `applyStatusWrite`'s precedence
+// guard in `apps/web/lib/sync/derive.ts`, which is where a stale
+// `status: shipped` is stopped from overriding a node whose current status
+// came from `linear`/`user`/`agent` — see that file for the guard.
 //
 // `apps/web/lib/sync/markdown.ts` re-exports this file verbatim — this is the
 // only parser in the codebase (STEM-70).
 import { parseDecisions, type ParsedDecision } from "./decisions";
 import { firstParagraph } from "./excerpt";
 import { parseFrontmatterBlock, splitFrontmatter } from "./frontmatter";
-import { DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST, type GithubIngestNodeStatus } from "./status";
+import { DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY, type DocDerivedNodeStatus } from "./status";
 import type { IssueCode } from "./validate";
 import { validateFrontmatterV1 } from "./validate";
 
@@ -32,13 +36,13 @@ export type ParsedDoc = {
   title: string;
   parent: string | null;
   /**
-   * GitHub-ingest authority only — `"planned" | "deprecated"`, never
-   * `in_progress`/`live`/`needs_work` (§4's write-priority rule; status.ts).
-   * A doc that declares `building`/`shipped`/etc. still lands here as
-   * `planned`; see the ingest-authority warning this file pushes when that
-   * happens.
+   * The full doc-status vocabulary except `needs_work` (derivation-only —
+   * see `DocDerivedNodeStatus` in status.ts). STEM-196: `shipped` reaches
+   * `live` here; whether that value actually gets WRITTEN to the node is a
+   * separate decision made downstream by `applyStatusWrite`'s precedence
+   * guard (`apps/web/lib/sync/derive.ts`), not by this parse step.
    */
-  status: GithubIngestNodeStatus | null;
+  status: DocDerivedNodeStatus | null;
   type: "feature" | "subfeature";
   sortOrder: number;
   /**
@@ -118,15 +122,22 @@ export function parseDoc(path: string, content: string): ParseResult {
   const fm1 = validated.value;
   const warnings = [...validated.warnings];
 
-  // §4's clamp. `DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST`'s return type makes
-  // in_progress/live/needs_work unreachable here by construction — see status.ts.
-  const status = fm1.status ? DOC_STATUS_TO_NODE_STATUS_GITHUB_INGEST[fm1.status] : null;
-  if (fm1.status && fm1.status !== status) {
-    // Fires for every declared value the clamp actually changes (idea,
-    // building, shipped, paused — all -> planned). `planned`/`deprecated`
-    // pass through unchanged and warn-free.
+  // STEM-196: the full translation, not a clamp — see the file header. No
+  // warning fires here for most values; whether a translated write actually
+  // lands is `applyStatusWrite`'s call, downstream in derive.ts, recorded
+  // per-node as a `StatusOutcome`, not as a parse-time warning on the doc.
+  //
+  // ONE exception: `building` -> `in_progress` is refused by
+  // `applyStatusWrite`'s `github_cannot_override` guard for EVERY node, on
+  // every sync, unconditionally (derive.ts §STEM-196 precedence rule — a
+  // github write may only raise-to-planned, ship, or deprecate). Without a
+  // warning here, a doc author who writes `status: building` gets no effect
+  // and no feedback anywhere in the product; every other doc-status value
+  // can at least apply on a fresh/system-authority node.
+  const status = fm1.status ? DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY[fm1.status] : null;
+  if (fm1.status === "building") {
     warnings.push(
-      `frontmatter status "${fm1.status}" cannot be set from a doc — GitHub frontmatter may only raise a node to "planned" or set "deprecated"; ingested as "${status}".`,
+      `frontmatter status "building" cannot be set from a doc — sync will not write it (in_progress is derived from Linear tickets only)`,
     );
   }
 

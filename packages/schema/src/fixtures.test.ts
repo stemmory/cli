@@ -94,43 +94,49 @@ it("no warning emitted by parseDoc cites a private-repo spec filename", () => {
 });
 
 /**
- * DATA_MODEL.md §4, LOCKED: "GitHub frontmatter may only raise a node from
- * nothing to `planned`, or set `deprecated`; it never overrides
- * `in_progress`/`live` (docs lag reality)." `parseDoc` is the GitHub-ingest
- * path (`apps/web/lib/sync/markdown.ts` -> `reconcile.ts`), so EVERY declared
- * status here clamps to `planned` except `deprecated` — this is the
- * regression test for the original D-1's `building -> in_progress` /
- * `shipped -> live` bug an adversarial reviewer caught.
+ * STEM-196 (founder ruling, 2026-08-27): `parseDoc` now translates through
+ * the FULL vocabulary — the GitHub-ingest clamp this suite used to assert
+ * was deleted; the precedence guard that replaced it lives in
+ * `applyStatusWrite` (`apps/web/lib/sync/derive.ts`) and is exercised there,
+ * not here, because it needs a node's CURRENT status/source to decide
+ * anything and `parseDoc` never sees the node. No warning fires at parse
+ * time any more for a translated status — every value below is the doc's
+ * genuinely intended `node_status`, not a demotion — EXCEPT `building`:
+ * `applyStatusWrite` refuses `in_progress` from a `github` write
+ * unconditionally, for every node, so a doc author who writes
+ * `status: building` gets no effect anywhere without this one warning
+ * (review finding, HIGH — the values a doc translates to but the sync
+ * layer can never apply must not ingest silently).
  */
-describe("every valid document status, through the GitHub-ingest clamp (§4)", () => {
+describe("every valid document status, through the frontmatter authority map (STEM-196)", () => {
   it.each([
-    ["status-idea.md", "planned", true],
-    ["status-planned.md", "planned", false],
-    ["status-building.md", "planned", true],
-    ["status-shipped.md", "planned", true],
-    ["status-paused.md", "planned", true],
-    ["status-deprecated.md", "deprecated", false],
-  ] as const)("%s ingests as node_status %s", (name, nodeStatus, expectClampWarning) => {
+    ["status-idea.md", "planned", []],
+    ["status-planned.md", "planned", []],
+    [
+      "status-building.md",
+      "in_progress",
+      [
+        'frontmatter status "building" cannot be set from a doc — sync will not write it (in_progress is derived from Linear tickets only)',
+      ],
+    ],
+    ["status-shipped.md", "live", []],
+    ["status-paused.md", "planned", []],
+    ["status-deprecated.md", "deprecated", []],
+  ] as const)("%s ingests as node_status %s", (name, nodeStatus, warnings) => {
     const r = parseDoc(name, fixture(name));
     expect(r.ok).toBe(true);
     expect(r.ok && r.doc.status).toBe(nodeStatus);
-    if (expectClampWarning) {
-      expect(r.ok && r.warnings.some((w) => w.includes("cannot be set from a doc"))).toBe(true);
-    } else {
-      expect(r.ok && r.warnings).toEqual([]);
-    }
+    expect(r.ok && r.warnings).toEqual(warnings);
   });
 
-  it("status: shipped does NOT ingest as live — the regression this split prevents", () => {
+  it("STEM-196: status: shipped now ingests as live", () => {
     const r = parseDoc("status-shipped.md", fixture("status-shipped.md"));
-    expect(r.ok && r.doc.status).not.toBe("live");
-    expect(r.ok && r.doc.status).toBe("planned");
+    expect(r.ok && r.doc.status).toBe("live");
   });
 
-  it("status: building does NOT ingest as in_progress — the regression this split prevents", () => {
+  it("STEM-196: status: building now ingests as in_progress", () => {
     const r = parseDoc("status-building.md", fixture("status-building.md"));
-    expect(r.ok && r.doc.status).not.toBe("in_progress");
-    expect(r.ok && r.doc.status).toBe("planned");
+    expect(r.ok && r.doc.status).toBe("in_progress");
   });
 });
 
@@ -258,13 +264,13 @@ describe("schema version skew (spec §3) — never a hard failure", () => {
     const r = parseDoc(name, fixture(name));
     expect(r.ok).toBe(true);
     expect(r.ok && r.doc.slug).toBe("alpha/from-the-future");
-    // shipped -> planned through the ingest clamp (§4) — still understood,
-    // NOT promoted to live just because the schema version is unfamiliar.
-    expect(r.ok && r.doc.status).toBe("planned");
+    // STEM-196: shipped -> live through the full authority map, same as any
+    // other doc — an unfamiliar schema version degrades the schema-skew
+    // handling only, it has nothing to do with status translation.
+    expect(r.ok && r.doc.status).toBe("live");
     expect(
       r.ok && r.warnings.some((w) => w.includes("newer") && w.includes("stemmory update")),
     ).toBe(true);
-    expect(r.ok && r.warnings.some((w) => w.includes("cannot be set from a doc"))).toBe(true);
     // STEM-84: the Conformance panel's kit-outdated nudge reads this field
     // directly rather than re-deriving version skew — must carry the doc's
     // declared value through unchanged, not clamp it to CURRENT.
@@ -297,7 +303,7 @@ describe("schema version skew (spec §3) — never a hard failure", () => {
  * ingesting every one unchanged).
  */
 describe("AGENT_CONVENTIONS_KIT_SPEC.md §2.4 kit fields", () => {
-  it("all four populated: no field-specific warning fires (status: building still clamps, §4)", () => {
+  it("all four populated: no field-specific warning fires (status: building -> in_progress, STEM-196)", () => {
     const name = "kit-fields-populated.md";
     const r = parseDoc(name, fixture(name));
     expect(r.ok).toBe(true);
@@ -306,11 +312,14 @@ describe("AGENT_CONVENTIONS_KIT_SPEC.md §2.4 kit fields", () => {
     expect(r.ok && r.doc.linearTeam).toBe("STEM");
     expect(r.ok && r.doc.links).toEqual(["PR#42", "docs/features/share-links.md"]);
     // This fixture is the spec's own §2.4 example verbatim, which declares
-    // `status: building` — the ingest-authority clamp (§4) still applies to
-    // it. owner/updated/linear_team/links are unaffected: only the status
-    // clamp warning fires, and status ingests as `planned`, not `in_progress`.
-    expect(r.ok && r.doc.status).toBe("planned");
-    expect(r.ok && r.warnings).toEqual([expect.stringContaining("cannot be set from a doc")]);
+    // `status: building`. STEM-196: that now ingests as `in_progress` (the
+    // full authority map) — owner/updated/linear_team/links are unaffected
+    // either way, but `building` itself carries the one status warning
+    // (applyStatusWrite refuses `in_progress` from github unconditionally).
+    expect(r.ok && r.doc.status).toBe("in_progress");
+    expect(r.ok && r.warnings).toEqual([
+      'frontmatter status "building" cannot be set from a doc — sync will not write it (in_progress is derived from Linear tickets only)',
+    ]);
   });
 
   it("all four absent AND not opted into the kit (no schema:): every doc ingests silently", () => {
