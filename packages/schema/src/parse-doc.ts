@@ -37,10 +37,10 @@ export type ParsedDoc = {
   parent: string | null;
   /**
    * The full doc-status vocabulary except `needs_work` (derivation-only —
-   * see `DocDerivedNodeStatus` in status.ts). STEM-196: `shipped` reaches
-   * `live` here; whether that value actually gets WRITTEN to the node is a
-   * separate decision made downstream by `applyStatusWrite`'s precedence
-   * guard (`apps/web/lib/sync/derive.ts`), not by this parse step.
+   * see `DocDerivedNodeStatus` in status.ts). `shipped` reaches `live`
+   * here; whether that value actually gets WRITTEN to the node is a
+   * separate decision made downstream by the hosted product's
+   * `applyStatusWrite` precedence guard, not by this parse step.
    */
   status: DocDerivedNodeStatus | null;
   type: "feature" | "subfeature";

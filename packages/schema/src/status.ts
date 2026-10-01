@@ -55,12 +55,12 @@ export type NodeStatus = (typeof NODE_STATUS_VALUES)[number];
 export type DocDerivedNodeStatus = Exclude<NodeStatus, "needs_work">;
 
 /**
- * The one doc-status -> node-status translation (STEM-196). Used by CLI
- * `stemmory lint`, future agent/MCP writes, AND — since STEM-196's founder
- * ruling — GitHub-frontmatter ingest (`parseDoc` in `parse-doc.ts`). All
- * three write `node_status` through the same words; what differs between
- * them is `WRITE_AUTHORITY` and the `github`-only precedence guard in
- * `apps/web/lib/sync/derive.ts`'s `applyStatusWrite`, not this map.
+ * The one doc-status -> node-status translation. Used by CLI
+ * `stemmory lint`, future agent/MCP writes, AND GitHub-frontmatter ingest
+ * (`parseDoc` in `parse-doc.ts`). All three write `node_status` through the
+ * same words; what differs between them is `WRITE_AUTHORITY` and the
+ * `github`-only precedence guard the hosted product applies when it writes
+ * a status (`applyStatusWrite`), not this map.
  */
 export const DOC_STATUS_TO_NODE_STATUS_EXPLICIT_AUTHORITY: Readonly<
   Record<DocStatus, DocDerivedNodeStatus>
