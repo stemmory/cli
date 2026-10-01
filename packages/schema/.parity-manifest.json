@@ -1,7 +1,8 @@
 {
   "src/decisions.test.ts": "d97d26eb402dbedc425fc0585a38683336e2a722a92e90539f55ca65b53caaaf",
   "src/decisions.ts": "729441548feaed0179bc9bcfe70f3ea8fccebcdc636a7b48b65569ae320e2709",
-  "src/excerpt.ts": "24d364fb15ca133c6ffeee720fea3d7ad60e8f2887e9c0f2dcaa2ef3a1f8e0ed",
+  "src/excerpt.test.ts": "26a18171e32b55a04b0b9445c1e68323454759d7a919e10d00aacad12162fb23",
+  "src/excerpt.ts": "e2effff20b9f270039ed6f871efe115e171ec38590f97969934494ee233bc20d",
   "src/fixtures.test.ts": "59c2799f6014969c6c554b9b963589090f2b698f4d0a8129970d9121672c5a00",
   "src/frontmatter.test.ts": "cf8f1e1b088d61f5a0f3f0ccb523f5e3c8bfadd789c7714f74f6046ecaea0ae2",
   "src/frontmatter.ts": "77c48091becd9b8fc46fc49559f34dbedb2a6e927698aec039e375f1f6195a71",
