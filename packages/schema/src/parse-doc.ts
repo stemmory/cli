@@ -16,9 +16,12 @@
 // reach `live` (STEM-196: a repo-only org that never connected Linear has no
 // other way to ever see a node go live). What still ranks this path BELOW
 // derivation is not this map anymore; it is `applyStatusWrite`'s precedence
-// guard in `apps/web/lib/sync/derive.ts`, which is where a stale
-// `status: shipped` is stopped from overriding a node whose current status
-// came from `linear`/`user`/`agent` — see that file for the guard.
+// guard in `apps/web/lib/sync/derive.ts`, which refuses a `github` write when
+// the node's current status came from `linear`/`user`/`agent`, with one
+// exception: a `github` `live` write is applied to a `planned` node whose
+// source is `linear` (STEM-561; DATA_MODEL.md §3–4, 2026-10-03 decision).
+// Never a demotion; never over `in_progress` or `needs_work`. See that file
+// for the guard.
 //
 // `apps/web/lib/sync/markdown.ts` re-exports this file verbatim — this is the
 // only parser in the codebase (STEM-70).
