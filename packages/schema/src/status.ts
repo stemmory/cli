@@ -22,10 +22,12 @@
 // VALUE here and gating the WRITE there were doing the same job twice; only
 // one of them can also produce `live`, so the gate is the one that survives.
 // A doc's `status: shipped` sitting stale for three weeks still cannot
-// promote a node to `live` out from under a real ticket-derived state —
-// DATA_MODEL.md §4.1's authority order already refuses a `github` write
-// whenever the node's current status came from `linear`/`user`/`agent`,
-// before the guard's content check ever runs.
+// promote a node out from under a real ticket-derived state —
+// DATA_MODEL.md §4.1's authority order refuses a `github` write whenever the
+// node's current status came from `linear`/`user`/`agent`, with one
+// exception: a `github` `live` write is applied to a `planned` node whose
+// source is `linear` (STEM-561; DATA_MODEL.md §3–4, 2026-10-03 decision).
+// Never a demotion; never over `in_progress` or `needs_work`.
 export const DOC_STATUS_VALUES = [
   "idea",
   "planned",
